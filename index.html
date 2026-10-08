@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>여행 가자</title>
 <meta name="robots" content="noindex, nofollow">
-<meta name="description" content="같이 가는 여행 — 공지·일정, 준비물 준비→챙김 체크, 정산을 링크 하나로">
+<meta name="description" content="같이 가는 여행 — 공지·일정, 준비물 준비→완료 체크, 정산을 링크 하나로">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -13,7 +13,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="여행 가자">
 <meta property="og:title" content="여행 가자">
-<meta property="og:description" content="공지·일정 · 준비물 준비→챙김 · 정산을 링크 하나로">
+<meta property="og:description" content="공지·일정 · 준비물 준비→완료 · 정산을 링크 하나로">
 <meta property="og:image" content="https://benny3s.github.io/trip/og-trip.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -106,7 +106,7 @@
   border-bottom:1px solid var(--line);background:rgba(var(--accent-rgb),.07);border-left:4px solid var(--accent)}
 .btn.graybtn{background:#eef0f1;border:1.5px solid #d7dcdf;color:#59646b;min-height:36px;padding:5px 12px;font-size:13px;font-weight:700}
 .btn.graybtn[aria-pressed="true"]{background:#59646b;border-color:#59646b;color:#fff}
-.stseg{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:0 0 8px}
+.stseg{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:0 0 8px}
 .stseg button{appearance:none;font:inherit;border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:6px 2px;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;gap:0;min-height:50px;color:var(--ink);touch-action:manipulation}
 .stseg button b{font-size:14px;font-weight:800}
@@ -263,7 +263,7 @@
     <p class="hint">여행을 만들고 <b>링크만 단톡방에 보내면</b>, 다 같이 보고 고쳐요.</p>
     <ul style="margin:0 0 14px;padding-left:20px;font-size:14px;line-height:1.75">
       <li><b>📢 공지·일정</b> — 장소·예약 정보·메뉴·담당을 한눈에</li>
-      <li><b>✅ 준비물</b> — 한 번 누르면 준비(짐 쌈), 한 번 더 누르면 챙김(차에 실음)</li>
+      <li><b>✅ 준비물</b> — 한 번 누르면 준비(짐 쌈), 한 번 더 누르면 완료(차에 실음)</li>
       <li><b>💰 정산</b> — 산 건 바로 적고, 누가 누구에게 얼마 보낼지 자동 계산</li>
     </ul>
     <button class="btn primary wide" id="homeNew" type="button">＋ 새 여행 만들기</button>
@@ -320,9 +320,9 @@
     <!-- 버튼 하나로 — 한 번 = 준비(짐 쌈), 두 번 = 챙김(차에 실음), 세 번 = 처음으로
          (2026-10-09 Benny: "챙김 버튼도 단일화, 한 번 누르면 준비, 한 번 더 누르면 챙김") -->
     <div class="card pgcard">
-      <div class="pgtop"><span class="lg"><i class="dot1"></i>준비 <b id="pgPrep"></b></span><span class="lg"><i class="dot2"></i>챙김 <b id="pgTake"></b></span><span class="pgn" id="pgTot"></span></div>
+      <div class="pgtop"><span class="lg"><i class="dot1"></i>준비 <b id="pgPrep"></b></span><span class="lg"><i class="dot2"></i>완료 <b id="pgTake"></b></span><span class="pgn" id="pgTot"></span></div>
       <div class="pbar2"><i class="b2" id="pgB2"></i><i class="b1" id="pgB1"></i></div>
-      <p class="pghint">한 번 누르면 <b>준비</b>(짐 쌈) · 한 번 더 누르면 <b>챙김</b>(차에 실음)</p>
+      <p class="pghint">한 번 누르면 <b>준비</b>(짐 쌈) · 한 번 더 누르면 <b>완료</b>(차에 실음)</p>
     </div>
     <!-- 켜고 끄는 두 개만 (2026-10-09 Benny: "버튼 많으면 뭘 봐야 할지 힘들어") -->
     <div class="fbar">
@@ -344,7 +344,7 @@
     <div class="card msum" id="mSum"></div>
     <div class="card" id="mXfer"></div>
     <!-- 지출 적기는 지출 내역 바로 위에 (2026-10-09 Benny: "혼자 동떨어져 있어") -->
-    <div class="mhead"><h2>🧾 지출 내역</h2><button class="btn primary" id="expAdd" type="button">＋ 지출 적기</button></div>
+    <div class="mhead"><h2>🧾 지출 내역</h2><button class="btn primary" id="expAdd" type="button">＋ 지출 내역 추가</button></div>
     <div id="mList"></div>
   </div>
 </section>
@@ -425,7 +425,7 @@
 <!-- ══════════ 지출 적기 ══════════ -->
 <div class="modal" id="expModal" hidden>
   <div class="sheet tall" role="dialog" aria-modal="true" style="max-width:460px">
-    <div class="spread"><h2 style="margin:0" id="expTitle">지출 적기</h2>
+    <div class="spread"><h2 style="margin:0" id="expTitle">지출 내역 추가</h2>
       <button class="iconbtn" type="button" data-close aria-label="닫기">✕</button></div>
     <label class="fld" style="margin-top:10px"><span>금액 (원)</span><input type="text" id="e_amt" class="amtin" inputmode="numeric" autocomplete="off" placeholder="0"></label>
     <label class="fld"><span>뭐 샀어요?</span><input type="text" id="e_title" maxlength="60" placeholder="예: 농협 장보기"></label>
@@ -577,7 +577,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-09n";
+const BUILD = "2026-10-09p";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -606,7 +606,8 @@ let TID = "", TRIP = null, ITEMS = [], MONEY = [], NOTES = [], PLAN = [], unsub 
 let ME = "";                                       // 이 기기의 팀 id
 let TAB = ls("tr_tab") || "info";
 let FMINE = ls("tr_fmine") === "1";
-let SF = ls("tr_sf") || "";                        // 상태 필터 "" 전체 · "0" 아직 · "1" 준비 · "2" 챙김
+/* 상태 필터 "" 전체 · "1" 준비 · "2" 완료 (2026-10-09 Benny: "전체/준비/완료, 아직은 빼고" · 두 번째 단계 이름도 '챙김' → '완료') */
+let SF = ["1", "2"].includes(ls("tr_sf")) ? ls("tr_sf") : "";
 let CATF = "";                                     // 종류 필터 (여행마다 처음엔 전체)
 let MFILTER = "";
 let PEDIT = false;                                 // '✎ 준비물 수정' 모드
@@ -1004,7 +1005,8 @@ function renderPack(){
   /* 진행 — 준비(1 이상) · 챙김(2) 를 막대 하나에 */
   let n = 0, n1 = 0, n2 = 0;
   ITEMS.forEach(it => unitsOf(it).forEach(v => { n++; if (v >= 1) n1++; if (v >= 2) n2++; }));
-  $("#pgPrep").textContent = n1; $("#pgTake").textContent = n2; $("#pgTot").textContent = "전체 " + n;
+  /* 필터 칸과 같은 기준 — 준비 = 준비만 */
+  $("#pgPrep").textContent = n1 - n2; $("#pgTake").textContent = n2; $("#pgTot").textContent = "전체 " + n;
   $("#pgB2").style.width = (n ? n2 / n * 100 : 0) + "%";
   $("#pgB1").style.width = (n ? (n1 - n2) / n * 100 : 0) + "%";
   $("#fMine").hidden = !TEAMS().length;
@@ -1021,7 +1023,7 @@ function renderPack(){
   const base = ITEMS.filter(it => (!fm || isMine(it)) && (!CATF || (it.cat || "기타") === CATF));
   const stOfItem = it => Math.min.apply(null, unitsOf(it));          // 0 아직 · 1 준비 · 2 챙김 (팀마다면 제일 늦은 쪽)
   const sb = $("#stSeg"); sb.innerHTML = "";
-  [["", "전체"], ["0", "아직"], ["1", "준비"], ["2", "챙김"]].forEach(([v, lab]) => {
+  [["", "전체"], ["1", "준비"], ["2", "완료"]].forEach(([v, lab]) => {
     const n = v === "" ? base.length : base.filter(it => String(stOfItem(it)) === v).length;
     const b = btn("", null, () => { SF = v; ls("tr_sf", SF); renderAll(); });
     b.append(el("b", "", lab), el("small", "", String(n)));
@@ -1046,12 +1048,12 @@ function renderPack(){
     if (SF !== "") list = list.filter(it => String(stOfItem(it)) === SF);
     if (!list.length) return;
     const card = el("div", "card ilist");
-    const h = el("div", "ghead"); h.append(el("span", "", cat), el("small", "", (cnt === tot ? "✓ " : "") + "챙김 " + cnt + " / " + tot));
+    const h = el("div", "ghead"); h.append(el("span", "", cat), el("small", "", (cnt === tot ? "✓ " : "") + "완료 " + cnt + " / " + tot));
     card.appendChild(h);
     list.forEach(it => card.appendChild(itemRow(it)));
     box.appendChild(card);
   });
-  if (!box.children.length) box.appendChild(el("div", "card empty", SF === "2" ? "아직 챙긴 게 없어요." : SF ? "여기에 해당하는 게 없어요 ✓" : (fm ? "내 준비물이 없어요." : "준비물이 없어요.")));
+  if (!box.children.length) box.appendChild(el("div", "card empty", SF === "2" ? "아직 완료한 게 없어요." : SF ? "여기에 해당하는 게 없어요 ✓" : (fm ? "내 준비물이 없어요." : "준비물이 없어요.")));
 }
 function itemRow(it){
   const k = kindOf(it), units = unitsOf(it);
@@ -1065,14 +1067,14 @@ function itemRow(it){
   ck.textContent = lo >= 2 ? "✓" : (lo >= 1 ? "준비" : (mixed ? units.filter(v => v >= 1).length + "/" + units.length : ""));
   ck.setAttribute("role", "checkbox");
   ck.setAttribute("aria-checked", lo >= 2 ? "true" : (lo >= 1 || mixed ? "mixed" : "false"));
-  ck.setAttribute("aria-label", it.name + (lo >= 2 ? " 챙김" : lo >= 1 ? " 준비" : " 아직"));
+  ck.setAttribute("aria-label", it.name + (lo >= 2 ? " 완료" : lo >= 1 ? " 준비" : " 아직"));
   if (!PEDIT) r.appendChild(ck);
   const m = el("div", "imain");
   m.appendChild(el("div", "inm", it.name));
   const w = el("div", "iw"), p = myPeople();
   /* '공통' 은 표시 안 함 — 대부분이 공통이라 줄마다 같은 글자만 늘었다 */
   (it.who || []).filter(x => x !== "공통" && (SPECIAL.includes(x) || PEOPLE().includes(x))).forEach(x => w.appendChild(el("span", "bd" + (SPECIAL.includes(x) ? " sp" : "") + (p.includes(x) ? " me" : ""), SP_LABEL[x] || x)));
-  if (k === "each" && !ME && TEAMS().length) w.appendChild(el("span", "mm", "챙김 " + TEAMS().filter(t => stOf(it, t.id) >= 2).length + "/" + TEAMS().length + "명"));
+  if (k === "each" && !ME && TEAMS().length) w.appendChild(el("span", "mm", "완료 " + TEAMS().filter(t => stOf(it, t.id) >= 2).length + "/" + TEAMS().length + "명"));
   if (it.memo) w.appendChild(el("span", "mm", it.memo));
   if (w.children.length) m.appendChild(w);
   r.appendChild(m);
@@ -1329,7 +1331,7 @@ function renderMoney(){
   /* 지출 목록 — 최근 것 위 */
   const box = $("#mList"); box.innerHTML = "";
   const list = MONEY.filter(m => !MFILTER || m.payer === MFILTER || (m.kind === "pay" && m.split && m.split[MFILTER])).sort((a, z) => ms(z.at) - ms(a.at));
-  if (!list.length){ box.appendChild(el("div", "card empty", MONEY.length ? "이 사람이 낸 지출이 없어요." : "아직 지출이 없어요. 산 건 바로 ＋ 지출 적기로!")); return; }
+  if (!list.length){ box.appendChild(el("div", "card empty", MONEY.length ? "이 사람이 낸 지출이 없어요." : "아직 지출이 없어요. 산 건 바로 ＋ 지출 내역 추가로!")); return; }
   const card = el("div", "card ilist");
   if (MFILTER){ const s = list.filter(m => m.kind !== "pay").reduce((a, m) => a + (+m.amt || 0), 0); const h = el("div", "ghead"); h.append(el("span", "", teamName(MFILTER) + " 지출 " + won(s)), btn("btn ghost sm", "✕ 전체 보기", () => { MFILTER = ""; renderAll(); })); h.style.alignItems = "center"; h.style.paddingTop = "4px"; h.style.paddingBottom = "4px"; card.appendChild(h); }
   list.forEach(m => {
@@ -1377,7 +1379,7 @@ function copySettle(){
 let exEditing = null, exPayer = "", exSplit = {};
 function openExp(m){
   exEditing = m || null;
-  $("#expTitle").textContent = m ? "지출 고치기" : "지출 적기";
+  $("#expTitle").textContent = m ? "지출 내역 수정" : "지출 내역 추가";
   $("#e_amt").value = m ? (+m.amt).toLocaleString("ko-KR") : "";
   $("#e_title").value = m ? m.title || "" : "";
   $("#e_memo").value = m ? m.memo || "" : "";
