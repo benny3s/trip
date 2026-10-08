@@ -62,14 +62,19 @@
 .addrow .btn{flex:1 1 auto}
 
 /* 공지 · 일정 */
-.plan .pday{display:flex;align-items:baseline;gap:8px;margin:12px 0 4px;font-size:13.5px;font-weight:800}
-.plan .pday:first-child{margin-top:0}
-.plan .pday .td{font-size:10.5px;font-weight:800;color:var(--on-accent);background:var(--accent);border-radius:999px;padding:1px 7px}
-.plan .pday.past{color:var(--muted)}
+.plan .dcard{padding:0;overflow:hidden}
+.plan .pday{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:15px;font-weight:900;letter-spacing:-.02em;
+  background:rgba(var(--accent-rgb),.07);border-left:4px solid var(--accent);border-bottom:1px solid var(--line)}
+.plan .pday small{font-size:12px;font-weight:700;color:var(--muted)}
+.plan .pday .td{font-size:11px;font-weight:800;color:var(--on-accent);background:var(--accent);border-radius:999px;padding:2px 8px}
+.plan .dcard.past .pday{border-left-color:#c3cbc7;background:var(--soft);color:var(--muted)}
+.plan .dcard.today{border-color:var(--accent);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.18)}
+.plan .dcard .prl{padding:9px 14px}
+.plan .dcard .plc{padding-left:82px;padding-right:14px}
 .prl{display:flex;gap:10px;align-items:flex-start;width:100%;appearance:none;border:0;background:transparent;font:inherit;color:inherit;text-align:left;
   padding:7px 2px;cursor:pointer;border-bottom:1px solid var(--line);min-height:40px}
 .prl:last-child{border-bottom:0}
-.prl .pt{flex:0 0 46px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent);font-size:13.5px}
+.prl .pt{flex:0 0 68px;white-space:nowrap;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent);font-size:13.5px}
 .prl .px{flex:1 1 auto;min-width:0;font-size:14px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
 .ncard .nh{display:flex;align-items:center;gap:8px}
 .ncard .nh h2{flex:1 1 auto;margin:0;font-size:16px}
@@ -208,7 +213,7 @@
 .prl .pm{font-size:12.5px;color:var(--muted);white-space:pre-wrap}
 .prl .pt.slot{font-size:12.5px;color:var(--amber)}
 .prl.hasplc{border-bottom:0}
-.plan .plc{display:block;margin:-2px 0 0;padding:0 0 8px 58px;border-bottom:1px solid var(--line);font-size:12.5px;font-weight:700;color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plan .plc{display:block;margin:-2px 0 0;padding:0 0 8px 72px;border-bottom:1px solid var(--line);font-size:12.5px;font-weight:700;color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* 레퍼런스 가져오기 */
 /* 기본 목록에서 추가 — 분류는 굵은 띠, 준비물은 동그란 이름 버튼 (2026-10-09 Benny: "리스트는 보기 힘들어, 동그란 단어 버튼을 체크") */
 .rcat{margin:14px 0 8px;display:flex;align-items:center;gap:8px;padding:8px 10px 8px 10px;border-left:4px solid var(--accent);
@@ -222,6 +227,13 @@
 .cmrow b{flex:1 1 auto;font-size:15px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cmrow small{color:var(--muted);font-weight:600;font-size:12px;margin-left:4px}
 .cmrow .btn{min-height:38px;padding:0 10px;font-size:13px}
+.tmrow{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;margin:0 0 8px}
+.tmrow button,.tmhours button{appearance:none;font:inherit;border:1.5px solid var(--line);background:var(--card);border-radius:11px;min-height:44px;
+  font-size:15px;font-weight:800;color:var(--ink);cursor:pointer;touch-action:manipulation}
+.tmrow button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.tmhours{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tmhours button{min-height:50px;font-size:17px}
+.tmhours button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .whohint{margin:6px 0 0;font-size:12px;color:var(--muted)}
 .rchip{appearance:none;font:inherit;font-size:14px;font-weight:600;padding:7px 13px;border-radius:999px;border:1.5px solid var(--line);
   background:var(--card);color:var(--ink);cursor:pointer;min-height:40px;touch-action:manipulation}
@@ -297,11 +309,8 @@
 
   <!-- 📢 공지 · 일정 -->
   <div id="tab-info" hidden>
-    <div class="card plan">
-      <div class="spread" style="margin-bottom:8px"><h2 style="margin:0">🗓 일정 · 메뉴 · 담당</h2>
-        <button class="btn sm edbtn" id="planAdd" type="button">＋ 일정</button></div>
-      <div id="planList"></div>
-    </div>
+    <div class="mhead" style="margin-top:4px"><h2>🗓 일정 · 메뉴 · 담당</h2><button class="btn primary" id="planAdd" type="button">＋ 일정</button></div>
+    <div id="planList" class="plan"></div>
     <div id="noteList"></div>
     <button class="btn wide" id="noteAdd" type="button" style="height:48px;font-size:14.5px">＋ 공지 추가</button>
   </div>
@@ -456,8 +465,7 @@
     <div class="spread"><h2 style="margin:0" id="planTitle">일정</h2>
       <button class="iconbtn" type="button" data-close aria-label="닫기">✕</button></div>
     <div class="fld" style="margin-top:10px"><span>날짜</span><div class="chips wrap6" id="p_days"></div></div>
-    <div class="fld"><span>언제</span><div class="chips wrap6" id="p_slots"></div>
-      <input type="time" id="p_time" style="margin-top:8px"></div>
+    <div class="fld"><span>언제 (선택)</span><div class="chips wrap6" id="p_slots"></div></div>
     <label class="fld"><span>내용 — 일정이나 메뉴</span><input type="text" id="p_text" maxlength="200" placeholder="예: 프렌치토스트, 모카포트 커피"></label>
     <label class="fld"><span>장소 (선택) — 식당 이름·주소 또는 지도 링크. 누르면 지도로 열려요</span><input type="text" id="p_place" maxlength="200" placeholder="예: 충주 ○○식당"></label>
     <div class="fld"><span>담당 (선택)</span><div class="chips wrap6" id="p_who"></div></div>
@@ -517,6 +525,18 @@
   </div>
 </div>
 
+<!-- ══════════ 시간 고르기 — 오전/오후 · 분 · 시 (시를 누르면 끝) (2026-10-09 Benny: "분은 00·15·30·45 만, 기본 00") ══════════ -->
+<div class="modal" id="timeModal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" style="max-width:340px">
+    <div class="spread"><h2 style="margin:0">시간</h2>
+      <button class="iconbtn" type="button" data-close aria-label="닫기">✕</button></div>
+    <div class="tmrow" id="tmAp" style="margin-top:10px"></div>
+    <div class="tmrow" id="tmMin"></div>
+    <p class="hint" style="margin:8px 0 6px">시를 누르면 정해져요</p>
+    <div class="tmhours" id="tmHours"></div>
+  </div>
+</div>
+
 <!-- ══════════ 분류 관리 — 추가 · 이름 바꾸기 · 순서 · 지우기 (2026-10-09 Benny) ══════════ -->
 <div class="modal" id="catModal" hidden>
   <div class="sheet tall" role="dialog" aria-modal="true" style="max-width:420px">
@@ -557,7 +577,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-09m";
+const BUILD = "2026-10-09n";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -783,17 +803,20 @@ function renderInfo(){
   /* 일정 — 날짜별 */
   const box = $("#planList"); box.innerHTML = "";
   const list = PLAN.slice().sort((a, b) => (a.date || "9999").localeCompare(b.date || "9999") || timeKey(a.time).localeCompare(timeKey(b.time)) || ms(a.at) - ms(b.at));
-  if (!list.length) box.appendChild(el("p", "hint", "아직 일정이 없어요. 집합·입실 시각, 끼니 메뉴, 담당을 한 줄씩 넣어 보세요."));
+  if (!list.length) box.appendChild(el("div", "card empty", "아직 일정이 없어요. 집합·입실 시각, 끼니 메뉴, 담당을 한 줄씩 넣어 보세요."));
   const t = todayIso(), days = tripDays();
-  let cur = null;
+  let cur = null, card = null;
   list.forEach(p => {
-    if (p.date !== cur){
+    if (p.date !== cur || !card){
       cur = p.date;
-      const h = el("div", "pday" + (p.date && p.date < t ? " past" : ""));
+      card = el("div", "card dcard" + (p.date && p.date < t ? " past" : "") + (p.date === t ? " today" : ""));
+      const h = el("div", "pday");
       const di = days.indexOf(p.date);
-      h.textContent = p.date ? fmtFull(p.date) + (di >= 0 ? " · " + (di + 1) + "일째" : "") : "날짜 미정";
+      h.appendChild(el("span", "", p.date ? fmtFull(p.date) : "날짜 미정"));
+      if (di >= 0) h.appendChild(el("small", "", (di + 1) + "일째"));
       if (p.date === t) h.appendChild(el("span", "td", "오늘"));
-      box.appendChild(h);
+      card.appendChild(h);
+      box.appendChild(card);
     }
     const r = btn("prl" + (p.place ? " hasplc" : ""), null, () => openPlan(p));
     const tx = el("span", "px"); tx.appendChild(el("span", "", p.text));
@@ -804,14 +827,14 @@ function renderInfo(){
       if (p.memo) w.appendChild(el("span", "pm", p.memo));
       tx.appendChild(w);
     }
-    r.append(el("span", "pt" + (SLOTS[p.time] ? " slot" : ""), p.time || "·"), tx);
-    box.appendChild(r);
+    r.append(el("span", "pt" + (SLOTS[p.time] ? " slot" : ""), timeLabel(p.time) || "·"), tx);
+    card.appendChild(r);
     /* 장소 — 줄 밑에 따로 (줄 전체는 고치기 버튼이라 링크를 안에 둘 수 없다) */
     if (p.place){
       const a = el("a", "plc", "📍 " + p.place.replace(/^https?:\/\/(www\.)?/, "").slice(0, 60));
       a.href = /^https?:\/\//i.test(p.place) ? p.place : "https://map.naver.com/p/search/" + encodeURIComponent(p.place);
       a.target = "_blank"; a.rel = "noopener";
-      box.appendChild(a);
+      card.appendChild(a);
     }
   });
   /* 공지 카드 */
@@ -846,6 +869,30 @@ function richText(box, text){
 /* 일정 한 줄 — 시간 자리에 끼니도 (정렬은 대략 그 시각으로) */
 const SLOTS = { "출발 전": "00:00", "아침": "08:00", "점심": "12:00", "저녁": "18:00", "밤": "21:00" };
 const timeKey = t => SLOTS[t] || t || "";
+/** "14:30" → "오후 2:30" · 끼니 이름은 그대로 */
+function timeLabel(t){
+  const m = /^(\d{1,2}):(\d{2})$/.exec(t || ""); if (!m) return t || "";
+  const h = +m[1]; return (h < 12 ? "오전 " : "오후 ") + ((h % 12) || 12) + ":" + m[2];
+}
+let tmAp = "pm", tmMin = "00";
+function openTime(){
+  const m = /^(\d{1,2}):(\d{2})$/.exec(plTime || "");
+  tmAp = m ? (+m[1] < 12 ? "am" : "pm") : "pm"; tmMin = m ? m[2] : "00";
+  drawTime(); openModal("timeModal");
+}
+function drawTime(){
+  const m = /^(\d{1,2}):(\d{2})$/.exec(plTime || ""), cur = m ? +m[1] : -1;
+  const ap = $("#tmAp"); ap.innerHTML = "";
+  [["am", "오전"], ["pm", "오후"]].forEach(([v, l]) => { const b = btn("", l, () => { tmAp = v; drawTime(); }); b.setAttribute("aria-pressed", String(tmAp === v)); ap.appendChild(b); });
+  const mn = $("#tmMin"); mn.innerHTML = "";
+  ["00", "15", "30", "45"].forEach(v => { const b = btn("", ":" + v, () => { tmMin = v; drawTime(); }); b.setAttribute("aria-pressed", String(tmMin === v)); mn.appendChild(b); });
+  const hb = $("#tmHours"); hb.innerHTML = "";
+  [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].forEach(h => {
+    const h24 = (h % 12) + (tmAp === "pm" ? 12 : 0);
+    const b = btn("", String(h), () => { plTime = pad2(h24) + ":" + tmMin; closeModal("timeModal"); drawPlanDays(); });
+    b.setAttribute("aria-pressed", String(h24 === cur)); hb.appendChild(b);
+  });
+}
 let plEditing = null, plDate = "", plTime = "", plWho = [];
 function openPlan(p){
   plEditing = p || null;
@@ -854,7 +901,6 @@ function openPlan(p){
   plDate = p ? (p.date || "") : (days.includes(t) ? t : (days[0] || ""));
   plTime = p ? p.time || "" : ""; plWho = p ? (p.who || []).slice() : [];
   drawPlanDays();
-  $("#p_time").value = /^\d/.test(plTime) ? plTime : "";
   $("#p_text").value = p ? p.text : "";
   $("#p_memo").value = p ? p.memo || "" : "";
   $("#p_place").value = p ? p.place || "" : "";
@@ -871,12 +917,14 @@ function drawPlanDays(){
     c.setAttribute("aria-pressed", String(d === plDate)); box.appendChild(c);
   });
   const sb = $("#p_slots"); sb.innerHTML = "";
-  Object.keys(SLOTS).forEach(x => { const c = btn("chip sm", x, () => { plTime = plTime === x ? "" : x; $("#p_time").value = ""; drawPlanDays(); }); c.setAttribute("aria-pressed", String(plTime === x)); sb.appendChild(c); });
+  Object.keys(SLOTS).forEach(x => { const c = btn("chip sm", x, () => { plTime = plTime === x ? "" : x; drawPlanDays(); }); c.setAttribute("aria-pressed", String(plTime === x)); sb.appendChild(c); });
+  const isClock = /^\d/.test(plTime || "");
+  const tc = btn("chip sm", isClock ? "🕐 " + timeLabel(plTime) : "🕐 시간 정하기", () => openTime());
+  tc.setAttribute("aria-pressed", String(isClock)); sb.appendChild(tc);
   const wb = $("#p_who"); wb.innerHTML = "";
   PEOPLE().concat(plWho.filter(x => !PEOPLE().includes(x))).forEach(x => { const c = btn("chip sm", x, () => { plWho = plWho.includes(x) ? plWho.filter(y => y !== x) : plWho.concat([x]); drawPlanDays(); }); c.setAttribute("aria-pressed", String(plWho.includes(x))); wb.appendChild(c); });
   if (!PEOPLE().length) wb.appendChild(el("span", "hint", "‘누구세요’에서 이름을 넣으면 골라져요"));
 }
-$("#p_time").addEventListener("input", () => { plTime = $("#p_time").value.slice(0, 5); drawPlanDays(); });
 $("#planAdd").onclick = () => openPlan(null);
 $("#p_save").onclick = () => {
   const text = $("#p_text").value.trim(), memo = $("#p_memo").value.trim();
