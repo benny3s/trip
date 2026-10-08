@@ -20,7 +20,7 @@
 |---|---|
 | `tripIdx/{pid}` | 링크 `?t=pid` (무작위 20자) — 이름·🔒·시작 날짜. **목록은 누구나**(등록된 여행 찾기), 내용은 PIN 열쇠 경로 |
 | `trips/{K}` | K = `sha256(pid + ":" + PIN)` (PIN 없으면 빈 PIN) — pid·이름·날짜·장소·주소·연락처·`teams[{id,name,people,bank}]` (화면에선 '사람' — 이름 하나 = 정산 하나, 부부·가족은 '베니네'처럼)·`cats` |
-| `trips/{K}/items/{id}` | 준비물 `{cat,name,who[],memo,ord,st}` — `st[팀id 또는 "_"]` = 0 아직 · 1 준비 · 2 완료 |
+| `trips/{K}/items/{id}` | 준비물 `{cat,name,who[],memo,ord,st}` — `st[팀id 또는 "_"]` = 0 아직 · 1 준비 · 2 완료 — 열쇠는 담당자마다(모두 = 전원), 담당 미정만 "_" 하나 |
 | `trips/{K}/money/{id}` | `{kind exp/pay, title, amt, payer, split{팀: 몫}, memo}` — 송금 기록은 kind pay, split = {받은 팀: 1} |
 | `trips/{K}/notes/{id}` · `plan/{id}` | 공지 카드 · 일정 한 줄 `{date, time, text, who[], memo, place}` (place = 식당·장소, 누르면 네이버 지도 검색) |
 

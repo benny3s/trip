@@ -93,10 +93,15 @@
 .pgtop .dot1{background:rgba(var(--accent-rgb),.28);border:1.5px solid var(--accent)}
 .pgtop .dot2{background:var(--accent)}
 .pgtop .pgn{margin-left:auto;color:var(--muted);font-weight:600;font-size:12.5px;font-variant-numeric:tabular-nums}
-.pbar2{height:8px;border-radius:999px;background:var(--line);overflow:hidden;margin:8px 0 0;display:flex}
-.pbar2 i{display:block;height:100%}
-.pbar2 .b2{background:var(--accent)}
-.pbar2 .b1{background:rgba(var(--accent-rgb),.32)}
+.pbar3{position:relative;height:10px;margin:9px 0 0}
+.pbar3 .track{display:flex;height:100%;border-radius:999px;overflow:hidden;background:var(--line)}
+.pbar3 .z{display:flex;height:100%;min-width:0}
+.pbar3 .z.mz{background:rgba(43,140,214,.22)}
+.pbar3 i{display:block;height:100%}
+.pbar3 .b2{background:var(--accent)}
+.pbar3 .b1{background:rgba(var(--accent-rgb),.38)}
+.pmark{position:absolute;top:-5px;bottom:-5px;width:3px;margin-left:-1.5px;background:#2b8cd6;border-radius:2px}
+.pgmine{margin:7px 0 0;font-size:12.5px;font-weight:800;color:#0b5c9e}
 .pghint{margin:7px 0 0;font-size:12px;color:var(--muted)}
 .pghint b{color:var(--ink)}
 .fbar{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px;align-items:center}
@@ -325,7 +330,9 @@
          (2026-10-09 Benny: "챙김 버튼도 단일화, 한 번 누르면 준비, 한 번 더 누르면 챙김") -->
     <div class="card pgcard">
       <div class="pgtop"><span class="lg"><i class="dot1"></i>준비 <b id="pgPrep"></b></span><span class="lg"><i class="dot2"></i>완료 <b id="pgTake"></b></span><span class="pgn" id="pgTot"></span></div>
-      <div class="pbar2"><i class="b2" id="pgB2"></i><i class="b1" id="pgB1"></i></div>
+      <!-- 막대 왼쪽 = 내 몫(하늘색 바탕), 눈금 = 내 몫 100% 지점, 오른쪽 = 다른 사람 몫 (2026-10-09 Benny) -->
+      <div class="pbar3"><div class="track"><div class="z mz" id="pgMineZ"><i class="b2" id="pgM2"></i><i class="b1" id="pgM1"></i></div><div class="z" id="pgRestZ"><i class="b2" id="pgR2"></i><i class="b1" id="pgR1"></i></div></div><span class="pmark" id="pgMark" hidden></span></div>
+      <p class="pgmine" id="pgMine" hidden></p>
       <p class="pghint">한 번 누르면 <b>준비</b>(짐 쌈) · 한 번 더 누르면 <b>완료</b>(차에 실음)</p>
     </div>
     <!-- 켜고 끄는 두 개만 (2026-10-09 Benny: "버튼 많으면 뭘 봐야 할지 힘들어") -->
@@ -578,7 +585,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-09q";
+const BUILD = "2026-10-09r";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -982,34 +989,48 @@ $("#o_del").onclick = () => {
 };
 
 /* ═══ ✅ 준비물 — 버튼 하나, 세 단계 ═══
-   st[열쇠] = 0 아직 · 1 준비(짐 쌈) · 2 챙김(차에 실음). 누를 때마다 0 → 1 → 2 → 0
-   열쇠 = '각자' 준비물이면 팀 id(팀마다 따로), 아니면 "_"
-   📍 현장(현장에서 사거나 거기 있는 것)은 준비 단계가 없다 — 한 번에 챙김(확인) */
-function kindOf(it){ const w = it.who || []; if (w.includes("현장")) return "site"; if (w.includes("각자") && TEAMS().length) return "each"; return "one"; }
+   st[열쇠] = 0 아직 · 1 준비(짐 쌈) · 2 완료(차에 실음). 누를 때마다 0 → 1 → 2 → 0
+   열쇠 = 담당이 있으면 **담당자마다** 그 사람 id ('모두' = 모든 사람), 담당 미정이면 "_" 하나.
+   각자 체크하고 결과만 합쳐 보여준다 (2026-10-09 Benny: "프로필 별로 각자 준비 체크, 결과만 합치고")
+   📍 현장은 준비 단계가 없다 — 한 번에 완료 */
+function kindOf(it){ return (it.who || []).includes("현장") ? "site" : "one"; }
 const stOf = (it, k) => (it.st && +it.st[k]) || 0;
-/** 이 화면에서 셀 칸들 — 각자 준비물은 우리 팀을 골랐으면 우리 팀 것만, 아니면 팀마다 */
+/** 이 준비물을 체크하는 열쇠들 */
+function keysOf(it){
+  const w = it.who || [];
+  if (!TEAMS().length) return ["_"];
+  if (w.includes("각자")) return TEAMS().map(t => t.id);
+  const ids = TEAMS().filter(t => w.includes(t.name)).map(t => t.id);
+  return ids.length ? ids : ["_"];
+}
+/** 화면에 보일 칸 — 내 몫이면 내 것만, 아니면 담당자 전부 합쳐서 */
 function unitsOf(it){
-  if (kindOf(it) === "each") return (ME ? [ME] : TEAMS().map(t => t.id)).map(k => stOf(it, k));
-  return [stOf(it, "_")];
+  const ks = keysOf(it);
+  return (ME && ks.includes(ME) ? [ME] : ks).map(k => stOf(it, k));
 }
 const taken = it => unitsOf(it).every(v => v >= 2);
-function isMine(it){
-  const w = it.who || [], p = myPeople().concat(ME ? [teamName(ME)] : []);
-  return w.includes("각자") || w.some(x => p.includes(x));
-}
+function isMine(it){ return !!ME && keysOf(it).includes(ME); }
 function catsOrdered(){
   const order = (TRIP.cats || []).slice();
   ITEMS.forEach(it => { if (!order.includes(it.cat || "기타")) order.push(it.cat || "기타"); });
   return order;
 }
 function renderPack(){
-  /* 진행 — 준비(1 이상) · 챙김(2) 를 막대 하나에 */
-  let n = 0, n1 = 0, n2 = 0;
-  ITEMS.forEach(it => unitsOf(it).forEach(v => { n++; if (v >= 1) n1++; if (v >= 2) n2++; }));
+  /* 진행 — 모든 담당자의 체크를 합친다. 왼쪽 구간 = 내 몫, 눈금 = 내 몫 100%, 오른쪽 = 다른 사람 몫 */
+  let n = 0, n1 = 0, n2 = 0, m = 0, m1 = 0, m2 = 0;
+  ITEMS.forEach(it => keysOf(it).forEach(k => {
+    const v = stOf(it, k); n++; if (v >= 1) n1++; if (v >= 2) n2++;
+    if (ME && k === ME){ m++; if (v >= 1) m1++; if (v >= 2) m2++; }
+  }));
   /* 필터 칸과 같은 기준 — 준비 = 준비만 */
-  $("#pgPrep").textContent = n1 - n2; $("#pgTake").textContent = n2; $("#pgTot").textContent = "전체 " + n;
-  $("#pgB2").style.width = (n ? n2 / n * 100 : 0) + "%";
-  $("#pgB1").style.width = (n ? (n1 - n2) / n * 100 : 0) + "%";
+  $("#pgPrep").textContent = n1 - n2; $("#pgTake").textContent = n2; $("#pgTot").textContent = "모두 합쳐 " + n;      // 담당자마다 따로 센 체크 수
+  const pc = (a, b) => (b ? a / b * 100 : 0) + "%", r = n - m;
+  $("#pgMineZ").style.width = pc(m, n); $("#pgRestZ").style.width = pc(r, n);
+  $("#pgM2").style.width = pc(m2, m); $("#pgM1").style.width = pc(m1 - m2, m);
+  $("#pgR2").style.width = pc(n2 - m2, r); $("#pgR1").style.width = pc((n1 - m1) - (n2 - m2), r);
+  $("#pgMark").hidden = !m || m === n; $("#pgMark").style.left = pc(m, n);
+  $("#pgMine").hidden = !m;
+  $("#pgMine").textContent = "◀ 내 몫 " + m + "개 · 완료 " + m2 + (m1 - m2 ? " · 준비 " + (m1 - m2) : "") + (m && m2 === m ? " ✓ 다 했어요" : "");
   $("#fMine").hidden = !TEAMS().length;
   const fm = FMINE && !!ME;
   $("#fMine").setAttribute("aria-pressed", String(fm));
@@ -1075,7 +1096,8 @@ function itemRow(it){
   const w = el("div", "iw"), p = myPeople();
   /* '공통' 은 표시 안 함 — 대부분이 공통이라 줄마다 같은 글자만 늘었다 */
   (it.who || []).filter(x => x !== "공통" && (SPECIAL.includes(x) || PEOPLE().includes(x))).forEach(x => w.appendChild(el("span", "bd" + (SPECIAL.includes(x) ? " sp" : "") + (p.includes(x) ? " me" : ""), SP_LABEL[x] || x)));
-  if (k === "each" && !ME && TEAMS().length) w.appendChild(el("span", "mm", "완료 " + TEAMS().filter(t => stOf(it, t.id) >= 2).length + "/" + TEAMS().length + "명"));
+  const ks = keysOf(it);
+  if (ks.length > 1 && !(ME && ks.includes(ME))) w.appendChild(el("span", "mm", "완료 " + ks.filter(x => stOf(it, x) >= 2).length + "/" + ks.length + "명"));
   if (it.memo) w.appendChild(el("span", "mm", it.memo));
   if (w.children.length) m.appendChild(w);
   r.appendChild(m);
@@ -1083,10 +1105,11 @@ function itemRow(it){
   return r;
 }
 async function toggleCheck(it){
-  const k = kindOf(it);
-  let key = "_";
-  if (k === "each"){
+  const k = kindOf(it), ks = keysOf(it);
+  let key = ks[0];                                  // 담당 미정("_") 이거나 한 사람 — 누가 눌러도 그 칸(대신 체크)
+  if (ks.length > 1){
     if (!ME){ await pickMe(); if (!ME) return; }
+    if (!ks.includes(ME)){ setStatus("담당자가 각자 체크해요 — " + ks.map(teamName).join(", "), "err"); return; }
     key = ME;
   }
   const v = stOf(it, key);
