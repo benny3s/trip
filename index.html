@@ -505,7 +505,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-09g";
+const BUILD = "2026-10-09h";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -519,6 +519,9 @@ const SUBS = ["items", "money", "notes", "plan"];
 async function sha256(t){ const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)); return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, "0")).join(""); }
 const keyOf = (pid, pin) => sha256(pid + ":" + (pin || ""));
 const pinOk = p => /^\d{4,8}$/.test(p);
+/* 창을 열 때 커서 넣기는 PC 에서만 — 폰은 키보드가 올라와 분류·누가 칩을 가린다 (2026-10-09 Benny: "목록 고치기 누르면 키보드 올라오는 거 불편") */
+const TOUCH = !!(window.matchMedia && matchMedia("(pointer: coarse)").matches);
+function softFocus(sel){ if (!TOUCH) setTimeout(() => { try { $(sel).focus(); } catch(e){} }, 80); }
 const linkOf = () => location.origin + location.pathname + "?t=" + PID;
 const TSV = () => firebase.firestore.FieldValue.serverTimestamp();
 const ms = t => (t && t.toMillis) ? t.toMillis() : (typeof t === "number" ? t : Date.now() + 1e9);   // 아직 서버 시각이 없는(방금 쓴) 건 맨 뒤
@@ -800,7 +803,7 @@ function openPlan(p){
   $("#p_place").value = p ? p.place || "" : "";
   $("#p_del").hidden = !p;
   openModal("planModal");
-  setTimeout(() => $("#p_text").focus(), 80);
+  softFocus("#p_text");
 }
 function drawPlanDays(){
   const box = $("#p_days"); box.innerHTML = "";
@@ -842,7 +845,7 @@ function openNote(n){
   $("#o_tools").hidden = !n;
   if (n){ const a = notesSorted(), i = a.findIndex(x => x.id === n.id); $("#o_up").disabled = i <= 0; $("#o_down").disabled = i >= a.length - 1; }
   openModal("noteModal");
-  setTimeout(() => (n ? $("#o_body") : $("#o_title")).focus(), 80);
+  softFocus(n ? "#o_body" : "#o_title");
 }
 $("#noteAdd").onclick = () => openNote(null);
 $("#o_save").onclick = () => {
@@ -983,7 +986,7 @@ function openItem(it){
   $("#i_more").hidden = !!it; $("#i_del").hidden = !it;
   drawItemChips();
   openModal("itemModal");
-  if (!it) setTimeout(() => $("#i_name").focus(), 80);
+  if (!it) softFocus("#i_name");
 }
 function drawItemChips(){
   const cb = $("#i_cats"); cb.innerHTML = "";
@@ -1191,7 +1194,7 @@ function openExp(m){
   drawExp();
   $("#e_opt").open = !!m && (splitText(exSplit) !== "다 같이" || !!m.memo);
   openModal("expModal");
-  if (!m) setTimeout(() => $("#e_amt").focus(), 80);
+  if (!m) softFocus("#e_amt");
 }
 const eqSplit = () => { const o = {}; TEAMS().forEach(t => o[t.id] = 1); return o; };
 function amtVal(){ return parseInt(($("#e_amt").value || "").replace(/[^\d]/g, ""), 10) || 0; }
@@ -1325,7 +1328,7 @@ MODAL_OPEN.newModal = () => {
   $("#n_name").value = ""; $("#n_start").value = ""; $("#n_end").value = ""; $("#n_pin").value = ""; syncDateBtn("n");
   $("#n_people").value = "";
   nTpl = "camp"; drawTpl();
-  setTimeout(() => $("#n_name").focus(), 80);
+  softFocus("#n_name");
 };
 function drawTpl(){
   const box = $("#n_tpl"); box.innerHTML = "";
