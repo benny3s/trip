@@ -218,6 +218,11 @@
 .rcat button{margin-left:auto;appearance:none;border:1px solid var(--line);background:var(--card);font:inherit;font-size:12px;font-weight:700;color:var(--ink);
   cursor:pointer;padding:5px 10px;border-radius:999px;min-height:32px}
 .rchips{display:flex;flex-wrap:wrap;gap:6px}
+.cmrow{display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--line)}
+.cmrow b{flex:1 1 auto;font-size:15px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmrow small{color:var(--muted);font-weight:600;font-size:12px;margin-left:4px}
+.cmrow .btn{min-height:38px;padding:0 10px;font-size:13px}
+.whohint{margin:6px 0 0;font-size:12px;color:var(--muted)}
 .rchip{appearance:none;font:inherit;font-size:14px;font-weight:600;padding:7px 13px;border-radius:999px;border:1.5px solid var(--line);
   background:var(--card);color:var(--ink);cursor:pointer;min-height:40px;touch-action:manipulation}
 .rchip.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:800}
@@ -313,14 +318,15 @@
     <!-- 켜고 끄는 두 개만 (2026-10-09 Benny: "버튼 많으면 뭘 봐야 할지 힘들어") -->
     <div class="fbar">
       <button class="chip tg" type="button" id="fMine">내 것만</button>
-      <button class="btn graybtn" type="button" id="fEdit" style="margin-left:auto">✎ 목록 고치기</button>
+      <button class="btn graybtn" type="button" id="fEdit" style="margin-left:auto">✎ 준비물 수정</button>
     </div>
     <!-- 상태 4칸 · 종류 칩 (2026-10-09 Benny: "안 챙긴 것만은 준비랑 챙김이랑 애매, 종류별로도 필터") -->
     <div class="stseg" id="stSeg"></div>
     <div class="catbar" id="catBar"></div>
     <!-- 고치기 모드에서만 — 평소엔 줄을 누르면 바로 체크 (2026-10-09: 이름을 눌렀는데 수정 창이 떠서 헷갈림) -->
     <div class="addrow" id="editBar" hidden><button class="btn primary" id="itemAdd" type="button">＋ 준비물 추가</button>
-      <button class="btn soft" id="refBtn" type="button">📋 기본 목록에서 추가</button></div>
+      <button class="btn soft" id="refBtn" type="button">📋 기본 목록에서 추가</button>
+      <button class="btn graybtn" id="catBtn" type="button" style="min-height:44px">🗂 분류 관리</button></div>
     <div id="packList"></div>
   </div>
 
@@ -395,8 +401,9 @@
       <textarea id="i_bulk" rows="6" placeholder="텐트&#10;에어매트&#10;공기주입기"></textarea>
     </details>
     <div class="fld"><span>분류</span><div class="chips wrap6" id="i_cats"></div></div>
-    <div class="fld"><span>누가 챙겨요? — 이름은 여러 명 가능</span><div class="chips wrap6" id="i_who"></div>
-      <p class="hint" style="margin:6px 0 0;font-size:12px"><b>공통</b> 하나만 있으면 돼요 · <b>각자</b> 사람마다 따로 챙겨요 · <b>🛒 마트</b> 가서 사요 · <b>📍 현장</b> 거기 있거나 거기서 사요</p></div>
+    <div class="fld"><span>누가 챙겨요?</span><div class="chips wrap6" id="i_who"></div>
+      <p class="whohint"><b>모두</b> = 사람마다 하나씩 챙겨요 · 아무도 안 고르면 ‘담당 미정’</p></div>
+    <div class="fld"><span>어디서 구해요? (선택)</span><div class="chips wrap6" id="i_where"></div></div>
     <label class="fld"><span>메모 (선택)</span><input type="text" id="i_memo" maxlength="200" placeholder="예: 2개, 큰 거"></label>
     <div class="row" style="gap:8px">
       <button class="btn primary" id="i_save" type="button" style="flex:1 1 auto">저장</button>
@@ -510,6 +517,17 @@
   </div>
 </div>
 
+<!-- ══════════ 분류 관리 — 추가 · 이름 바꾸기 · 순서 · 지우기 (2026-10-09 Benny) ══════════ -->
+<div class="modal" id="catModal" hidden>
+  <div class="sheet tall" role="dialog" aria-modal="true" style="max-width:420px">
+    <div class="spread"><h2 style="margin:0">분류 관리</h2>
+      <button class="iconbtn" type="button" data-close aria-label="닫기">✕</button></div>
+    <p class="hint" style="margin:6px 0 10px">지운 분류의 준비물은 ‘기타’로 옮겨져요.</p>
+    <div id="cmList"></div>
+    <button class="btn primary wide" id="cmAdd" type="button" style="margin-top:12px;height:48px;font-size:15px">＋ 분류 추가</button>
+  </div>
+</div>
+
 <!-- ══════════ 기본 목록에서 추가 ══════════ -->
 <div class="modal" id="refModal" hidden>
   <div class="sheet tall" role="dialog" aria-modal="true" style="max-width:480px">
@@ -539,7 +557,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-09l";
+const BUILD = "2026-10-09m";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -571,17 +589,20 @@ let FMINE = ls("tr_fmine") === "1";
 let SF = ls("tr_sf") || "";                        // 상태 필터 "" 전체 · "0" 아직 · "1" 준비 · "2" 챙김
 let CATF = "";                                     // 종류 필터 (여행마다 처음엔 전체)
 let MFILTER = "";
-let PEDIT = false;                                 // 준비물 '목록 고치기' 모드
+let PEDIT = false;                                 // '✎ 준비물 수정' 모드
 let opening = false;
 const TEAMS = () => (TRIP && TRIP.teams) || [];
 const teamOf = id => TEAMS().find(t => t.id === id) || null;
 const teamName = id => { const t = teamOf(id); return t ? t.name : "(지운 사람)"; };
 /* 담당 고르기 칩 — 이름마다 people(옛 여행처럼 한 이름 안에 사람이 나뉘어 있으면 그 사람들) 또는 이름 그대로 */
-const PEOPLE = () => TEAMS().flatMap(t => (t.people && t.people.length) ? t.people : [t.name]);
-const myPeople = () => { const t = teamOf(ME); return t ? ((t.people && t.people.length) ? t.people : [t.name]) : []; };
+/* 사람 = 누구세요의 이름 하나 (부부는 '베니네'처럼). 담당 칩도 같은 이름 (2026-10-09 Benny: "누구세요는 3명인데 준비물은 다 나뉘어 있어, 통일") */
+const PEOPLE = () => TEAMS().map(t => t.name);
+const myPeople = () => ME && teamOf(ME) ? [teamName(ME)] : [];
 /* 누가 — 사람 이름 + 특별 4개 */
-const SPECIAL = ["공통", "각자", "마트", "현장"];
-const SP_LABEL = { "공통": "공통", "각자": "각자", "마트": "🛒 마트", "현장": "📍 현장" };
+/* who 안의 특별한 값 — '각자' = 화면에선 **모두**(사람마다 하나씩), '마트'·'현장' = 어디서. 옛 '공통'은 담당 미정으로 읽는다 */
+const SPECIAL = ["각자", "마트", "현장", "공통"];
+const WHERE = ["마트", "현장"];
+const SP_LABEL = { "각자": "모두", "마트": "🛒 마트", "현장": "📍 현장", "공통": "" };
 
 /* ── 이 기기에서 연 여행 ── */
 function mine(){ try { const a = JSON.parse(ls("tr_mine") || "[]"); return Array.isArray(a) ? a.filter(x => x && x.id) : []; } catch(e){ return []; } }
@@ -945,7 +966,7 @@ function renderPack(){
   $("#editBar").hidden = !PEDIT;
   /* 목록 */
   const box = $("#packList"); box.innerHTML = "";
-  if (!ITEMS.length){ box.appendChild(el("div", "card empty", "아직 준비물이 없어요. ✎ 목록 고치기 → 📋 기본 목록에서 가져오면 빨라요.")); return; }
+  if (!ITEMS.length){ box.appendChild(el("div", "card empty", "아직 준비물이 없어요. ✎ 준비물 수정 → 📋 기본 목록에서 가져오면 빨라요.")); return; }
   /* 상태 4칸 — 개수는 '내 것만'·종류 필터를 반영 */
   const cats = catsOrdered();
   if (CATF && !cats.includes(CATF)) CATF = "";
@@ -1002,7 +1023,7 @@ function itemRow(it){
   m.appendChild(el("div", "inm", it.name));
   const w = el("div", "iw"), p = myPeople();
   /* '공통' 은 표시 안 함 — 대부분이 공통이라 줄마다 같은 글자만 늘었다 */
-  (it.who || []).filter(x => x !== "공통").forEach(x => w.appendChild(el("span", "bd" + (SPECIAL.includes(x) ? " sp" : "") + (p.includes(x) ? " me" : ""), SP_LABEL[x] || x)));
+  (it.who || []).filter(x => x !== "공통" && (SPECIAL.includes(x) || PEOPLE().includes(x))).forEach(x => w.appendChild(el("span", "bd" + (SPECIAL.includes(x) ? " sp" : "") + (p.includes(x) ? " me" : ""), SP_LABEL[x] || x)));
   if (k === "each" && !ME && TEAMS().length) w.appendChild(el("span", "mm", "챙김 " + TEAMS().filter(t => stOf(it, t.id) >= 2).length + "/" + TEAMS().length + "명"));
   if (it.memo) w.appendChild(el("span", "mm", it.memo));
   if (w.children.length) m.appendChild(w);
@@ -1029,15 +1050,70 @@ $("#fMine").onclick = async () => {
 };
 $("#fEdit").onclick = () => { PEDIT = !PEDIT; renderAll(); };
 
+/* ═══ 분류 관리 ═══ */
+MODAL_OPEN.catModal = () => drawCats();
+$("#catBtn").onclick = () => openModal("catModal");
+function drawCats(){
+  const box = $("#cmList"); box.innerHTML = "";
+  const cats = catsOrdered();
+  cats.forEach((c, i) => {
+    const r = el("div", "cmrow");
+    const b = el("b", "", c); b.appendChild(el("small", "", ITEMS.filter(x => (x.cat || "기타") === c).length + "개")); r.appendChild(b);
+    const up = btn("btn", "↑", () => moveCat(i, -1)); up.disabled = i === 0;
+    const dn = btn("btn", "↓", () => moveCat(i, 1)); dn.disabled = i === cats.length - 1;
+    r.append(up, dn, btn("btn", "이름", () => renameCat(c)), btn("btn ghost danger", "지우기", () => deleteCat(c)));
+    box.appendChild(r);
+  });
+  if (!cats.length) box.appendChild(el("p", "hint", "아직 분류가 없어요."));
+}
+function saveCats(cats){ TRIP.cats = cats; drawCats(); renderAll(); return run(T().update({ cats, updatedAt: TSV() })); }
+function moveCat(i, d){ const a = catsOrdered(); const j = i + d; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; saveCats(a); }
+$("#cmAdd").onclick = async () => {
+  const v = ((await askText({ title: "새 분류 이름", maxlength: 20, placeholder: "예: 아이 물건" })) || "").trim();
+  if (!v) return;
+  const a = catsOrdered(); if (a.includes(v)){ setStatus("이미 있는 분류예요", "err"); return; }
+  saveCats(a.concat([v]));
+};
+async function renameCat(c){
+  const v = ((await askText({ title: "분류 이름 바꾸기", value: c, maxlength: 20 })) || "").trim();
+  if (!v || v === c) return;
+  const a = catsOrdered();
+  if (a.includes(v) && !await ask({ title: "‘" + v + "’ 분류와 합칠까요?", text: "‘" + c + "’ 의 준비물이 ‘" + v + "’ 로 옮겨져요.", ok: "합치기" })) return;
+  const cats = a.includes(v) ? a.filter(x => x !== c) : a.map(x => x === c ? v : x);
+  await moveItemsCat(c, v, cats);
+}
+async function deleteCat(c){
+  const n = ITEMS.filter(x => (x.cat || "기타") === c).length;
+  if (c === "기타" && n){ setStatus("‘기타’는 준비물이 있으면 못 지워요 — 이름을 바꾸거나 다른 분류로 합쳐 주세요", "err"); return; }
+  if (!await ask({ title: "‘" + c + "’ 분류를 지울까요?", text: n ? "준비물 " + n + "개는 ‘기타’로 옮겨져요." : "비어 있는 분류예요.", ok: "지우기", danger: true })) return;
+  let cats = catsOrdered().filter(x => x !== c);
+  if (n && !cats.includes("기타")) cats = cats.concat(["기타"]);
+  await moveItemsCat(c, "기타", cats);
+}
+/** 분류 c 의 준비물을 to 로 옮기고 분류 순서를 cats 로 */
+async function moveItemsCat(c, to, cats){
+  const list = ITEMS.filter(x => (x.cat || "기타") === c);
+  await run((async () => {
+    for (let i = 0; i < list.length; i += 400){
+      const b = db.batch();
+      list.slice(i, i + 400).forEach(x => b.update(T().collection("items").doc(x.id), { cat: to }));
+      if (i === 0) b.update(T(), { cats, updatedAt: TSV() });
+      await b.commit();
+    }
+    if (!list.length) await T().update({ cats, updatedAt: TSV() });
+  })(), "바꿨어요");
+  TRIP.cats = cats; drawCats();
+}
+
 /* 준비물 추가·수정 */
 let itEditing = null, itCat = "", itWho = [];
 function openItem(it){
   itEditing = it || null;
-  $("#itemTitle").textContent = it ? "준비물 고치기" : "준비물 추가";
+  $("#itemTitle").textContent = it ? "준비물 수정" : "준비물 추가";
   $("#i_name").value = it ? it.name : "";
   $("#i_memo").value = it ? it.memo || "" : "";
   $("#i_bulk").value = ""; $("#i_bulkWrap").open = false; $("#i_bulkWrap").hidden = !!it;
-  if (it){ itCat = it.cat || "기타"; itWho = (it.who || []).slice(); }
+  if (it){ itCat = it.cat || "기타"; itWho = (it.who || []).filter(x => x !== "공통"); }
   else if (!itCat) itCat = catsOrdered()[0] || "기본 준비물";
   $("#i_more").hidden = !!it; $("#i_del").hidden = !it;
   drawItemChips();
@@ -1053,12 +1129,25 @@ function drawItemChips(){
     const v = await askText({ title: "새 분류 이름", maxlength: 20, placeholder: "예: 아이 물건" });
     if (v && v.trim()){ itCat = v.trim(); drawItemChips(); }
   }));
+  /* 누가 — '모두' 와 이름은 서로 배타. 어디서 — 마트·현장 중 하나 (사람 선택과는 따로) */
   const wb = $("#i_who"); wb.innerHTML = "";
-  PEOPLE().concat(SPECIAL).forEach(x => {
-    const b = btn("chip sm" + (SPECIAL.includes(x) ? " spc" : ""), SP_LABEL[x] || x, () => {
-      itWho = itWho.includes(x) ? itWho.filter(y => y !== x) : itWho.concat([x]); drawItemChips();
+  ["각자"].concat(PEOPLE()).forEach(x => {
+    const b = btn("chip sm" + (x === "각자" ? " spc" : ""), x === "각자" ? "모두" : x, () => {
+      const on = itWho.includes(x);
+      if (x === "각자") itWho = on ? itWho.filter(y => y !== x) : itWho.filter(y => WHERE.includes(y)).concat([x]);
+      else itWho = on ? itWho.filter(y => y !== x) : itWho.filter(y => y !== "각자").concat([x]);
+      drawItemChips();
     });
     b.setAttribute("aria-pressed", String(itWho.includes(x))); wb.appendChild(b);
+  });
+  const hb = $("#i_where"); hb.innerHTML = "";
+  [["마트", "🛒 마트에서 사요"], ["현장", "📍 현장에 있어요·사요"]].forEach(([x, lab]) => {
+    const b = btn("chip sm spc", lab, () => {
+      const on = itWho.includes(x);
+      itWho = itWho.filter(y => !WHERE.includes(y)).concat(on ? [] : [x]);
+      drawItemChips();
+    });
+    b.setAttribute("aria-pressed", String(itWho.includes(x))); hb.appendChild(b);
   });
 }
 async function saveItem(more){
@@ -1066,7 +1155,7 @@ async function saveItem(more){
   const first = $("#i_name").value.trim();
   const names = it ? [first] : [first].concat($("#i_bulk").value.split("\n").map(s => s.split("\t")[0].trim())).filter(Boolean);
   if (!names.length || (it && !first)){ setStatus("이름을 적어주세요", "err"); return; }
-  const who = PEOPLE().concat(SPECIAL).filter(x => itWho.includes(x)).concat(itWho.filter(x => !PEOPLE().includes(x) && !SPECIAL.includes(x)));
+  const who = ["각자"].concat(PEOPLE(), WHERE).filter(x => itWho.includes(x));
   const needCat = !(TRIP.cats || []).includes(cat);
   if (more){ $("#i_name").value = ""; $("#i_memo").value = ""; $("#i_bulk").value = ""; $("#i_name").focus(); }
   else closeModal("itemModal");
@@ -1311,10 +1400,8 @@ function addTeamRow(box, t){
 }
 function readTeams(box){
   return $$("#" + box.id + " .teamrow").map(r => {
-    const id = r.dataset.id, name = r.querySelector(".tn").value.trim(), old = teamOf(id);
-    /* 이름이 그대로면 옛 people(한 이름 안에 나뉜 사람들 = 담당 칩)을 둔다 */
-    const people = old && old.name === name && old.people && old.people.length ? old.people : [name];
-    return { id, name, people, bank: r.querySelector(".tb").value.trim() };
+    const id = r.dataset.id, name = r.querySelector(".tn").value.trim();
+    return { id, name, people: [name], bank: r.querySelector(".tb").value.trim() };
   }).filter(t => t.name);
 }
 const namesToTeams = txt => Array.from(new Set(splitList(txt).map(x => x.slice(0, 12)))).slice(0, 12).map(n => ({ id: "t" + rid(6), name: n, people: [n], bank: "" }));
@@ -1353,11 +1440,11 @@ const TEMPLATES = {
     "기타": ["캐리어 자물쇠·네임택|각", "접이식 보조가방|각|쇼핑 대비", "물티슈|공", "지퍼백·비닐|공", "우산|각"]
   } }
 };
-const WHO_CODE = { "공": "공통", "각": "각자", "마": "마트", "현": "현장" };
+const WHO_CODE = { "공": "", "각": "각자", "마": "마트", "현": "현장" };
 function tplItems(id){
   const t = TEMPLATES[id]; if (!t) return [];
   const out = [];
-  for (const cat in t.cats) t.cats[cat].forEach(line => { const [name, w, memo] = line.split("|"); out.push({ cat, name, who: [WHO_CODE[w] || "공통"], memo: memo || "" }); });
+  for (const cat in t.cats) t.cats[cat].forEach(line => { const [name, w, memo] = line.split("|"); out.push({ cat, name, who: WHO_CODE[w] ? [WHO_CODE[w]] : [], memo: memo || "" }); });
   return out;
 }
 /** 레퍼런스 고르기 목록 — 기본 3개 + 이 기기에서 연 지난 여행 (지금 여행은 빼고) */
@@ -1373,9 +1460,9 @@ async function loadRef(id, teams){
   let k = ls("tr_key:" + pid) || await keyOf(pid, "");
   const s = await C("trips").doc(k).collection("items").get().catch(() => null);
   if (!s) return null;
-  const ppl = (teams || []).flatMap(t => (t.people && t.people.length) ? t.people.concat([t.name]) : [t.name]);
+  const ppl = (teams || []).map(t => t.name);
   return s.docs.map(d => d.data()).sort((a, b) => (a.ord || 0) - (b.ord || 0))
-    .map(x => { const who = (x.who || []).filter(w => SPECIAL.includes(w) || ppl.includes(w)); return { cat: x.cat || "기타", name: x.name, who: who.length ? who : ["공통"], memo: x.memo || "" }; });
+    .map(x => ({ cat: x.cat || "기타", name: x.name, who: (x.who || []).filter(w => (SPECIAL.includes(w) && w !== "공통") || ppl.includes(w)), memo: x.memo || "" }));
 }
 
 /* ═══ 새 여행 ═══ */
