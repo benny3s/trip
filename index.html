@@ -1,0 +1,1572 @@
+<!doctype html>
+<html lang="ko" data-theme="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>여행 가자</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="같이 가는 여행 — 공지·일정, 준비물 준비→챙김 체크, 정산을 링크 하나로">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0b835b">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="여행 가자">
+<meta property="og:title" content="여행 가자">
+<meta property="og:description" content="공지·일정 · 준비물 준비→챙김 · 정산을 링크 하나로">
+<meta property="og:image" content="https://benny3s.github.io/trip/og-trip.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://benny3s.github.io/trip/">
+<!-- 디자인은 약속 잡자·밴드매니저·위시태그와 **같은 파일** -->
+<link rel="stylesheet" href="../when/ui.css?v=2026-10-08f">
+<style>
+/* ═══ 여행 가자에만 있는 것 ═══ */
+:root{--load:#2f6fb5;--load-rgb:47,111,181}
+.mine-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:20px 0 2px;padding-top:12px;border-top:1px solid var(--line);
+  font-size:12px;font-weight:700;color:var(--muted)}
+.mine-h span:last-child{font-weight:500;font-size:11.5px}
+.pkrow{display:flex;align-items:center;border-bottom:1px solid var(--line)}
+.pkrow:last-child{border-bottom:0}
+.pkrow .pk1{border-bottom:0;flex:1 1 auto}
+.pkrow .pkdel{flex:0 0 auto;width:36px;min-height:36px;padding:0;color:var(--muted)}
+.pk1.on::after{content:" ·  지금 보는 여행"}
+.pk1 small{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-top:1px}
+
+/* 여행 머리 */
+.thead .eyebrow{font-size:12px}
+.thead .dd{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-weight:800;font-size:11px;vertical-align:1px}
+.thead .dd.past{background:var(--soft);color:var(--muted)}
+.tplace{display:flex;flex-direction:column;gap:3px;margin:8px 0 0;font-size:13.5px}
+.tplace a{color:var(--ink);text-decoration:none;border-bottom:1px dashed rgba(var(--accent-rgb),.5)}
+.tplace .pl{font-weight:800}
+.mebar{display:flex;align-items:center;gap:8px;margin:12px 0 0;padding:8px 10px;border-radius:12px;background:rgba(var(--accent-rgb),.08);
+  font-size:13px;font-weight:700;color:var(--accent);cursor:pointer;border:0;width:100%;font-family:inherit;text-align:left}
+.mebar.need{background:rgba(var(--accent-rgb),.14);outline:1.5px dashed var(--accent);outline-offset:-1.5px;animation:breathe 2.6s ease-in-out infinite}
+.mebar .cg{margin-left:auto;font-weight:600;color:var(--muted);font-size:12px}
+
+/* 탭 — 위에 붙어 따라온다 */
+.tabbar{position:sticky;top:0;z-index:20;background:var(--bg);padding:6px 0 8px;margin:0 0 4px}
+.tabbar .seg{display:flex;width:100%;margin:0}
+.tabbar .segb{flex:1 1 0;font-size:14px;padding:9px 4px}
+.tabbar .segb .n{font-size:11px;font-weight:600;color:var(--muted);margin-left:3px}
+.addrow{display:flex;gap:8px;margin:0 0 12px}
+.addrow .btn{flex:1 1 auto}
+
+/* 공지 · 일정 */
+.plan .pday{display:flex;align-items:baseline;gap:8px;margin:12px 0 4px;font-size:13.5px;font-weight:800}
+.plan .pday:first-child{margin-top:0}
+.plan .pday .td{font-size:10.5px;font-weight:800;color:var(--on-accent);background:var(--accent);border-radius:999px;padding:1px 7px}
+.plan .pday.past{color:var(--muted)}
+.prl{display:flex;gap:10px;align-items:flex-start;width:100%;appearance:none;border:0;background:transparent;font:inherit;color:inherit;text-align:left;
+  padding:7px 2px;cursor:pointer;border-bottom:1px solid var(--line);min-height:40px}
+.prl:last-child{border-bottom:0}
+.prl .pt{flex:0 0 46px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent);font-size:13.5px}
+.prl .px{flex:1 1 auto;min-width:0;font-size:14px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.ncard .nh{display:flex;align-items:center;gap:8px}
+.ncard .nh h2{flex:1 1 auto;margin:0;font-size:16px}
+.ncard .nb{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.7;margin:8px 0 0}
+.ncard .nb a{color:var(--accent);font-weight:700}
+.ncard .nb.fold{max-height:9.2em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 70%,transparent)}
+.ncard .nmorebtn{appearance:none;border:0;background:none;font:inherit;font-size:12.5px;font-weight:700;color:var(--accent);padding:6px 0 0;cursor:pointer}
+.edbtn{flex:0 0 auto;min-height:36px;padding:0 11px;font-size:12.5px}
+
+/* 준비물 */
+.pgcard{padding:12px 14px}
+.pgtop{display:flex;align-items:center;gap:14px;font-size:13.5px;font-weight:700}
+.pgtop .lg{display:inline-flex;align-items:center;gap:6px}
+.pgtop .lg b{font-variant-numeric:tabular-nums}
+.pgtop i{display:inline-block;width:12px;height:12px;border-radius:999px}
+.pgtop .dot1{background:rgba(var(--accent-rgb),.28);border:1.5px solid var(--accent)}
+.pgtop .dot2{background:var(--accent)}
+.pgtop .pgn{margin-left:auto;color:var(--muted);font-weight:600;font-size:12.5px;font-variant-numeric:tabular-nums}
+.pbar2{height:8px;border-radius:999px;background:var(--line);overflow:hidden;margin:8px 0 0;display:flex}
+.pbar2 i{display:block;height:100%}
+.pbar2 .b2{background:var(--accent)}
+.pbar2 .b1{background:rgba(var(--accent-rgb),.32)}
+.pghint{margin:7px 0 0;font-size:12px;color:var(--muted)}
+.pghint b{color:var(--ink)}
+.fbar{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px;align-items:center}
+.fbar .chip{min-height:36px;padding:5px 12px;font-size:13px}
+.fbar .chip.tg[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.ghead{display:flex;justify-content:space-between;align-items:baseline;padding:11px 14px 6px;font-size:13px;font-weight:800;border-bottom:1px solid var(--line)}
+.ghead small{font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.ilist{padding:0;overflow:hidden}
+.irow{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 10px;border-bottom:1px solid var(--line);min-height:52px}
+.irow:last-child{border-bottom:0}
+.irow{cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+.irow:active{background:var(--soft)}
+.irow.edit{padding-left:16px}
+.irow .ck{pointer-events:none}
+.ck{flex:0 0 auto;width:40px;height:40px;border-radius:999px;border:2px solid #c7d2cc;background:var(--card);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:transparent;padding:0;touch-action:manipulation}
+.ck:active{transform:scale(.94)}
+.ck.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.ck.prep{background:rgba(var(--accent-rgb),.16);border-color:var(--accent);color:var(--accent);font-size:11px;font-weight:800;letter-spacing:-.03em}
+.ck.half{border-color:var(--accent);color:var(--accent);background:rgba(var(--accent-rgb),.08);font-size:12px}
+.imain{flex:1 1 auto;min-width:0;appearance:none;border:0;background:transparent;font:inherit;color:inherit;text-align:left;padding:4px 0;cursor:pointer}
+.inm{font-size:15px;font-weight:700;letter-spacing:-.02em;line-height:1.35;overflow-wrap:anywhere}
+.irow.done .inm{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(0,0,0,.25)}
+.iw{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;align-items:center}
+.bd{font-size:11px;font-weight:700;padding:0 6px;border-radius:6px;background:var(--soft);color:var(--muted);line-height:18px}
+.bd.me{background:rgba(var(--accent-rgb),.14);color:var(--accent)}
+.bd.sp{background:rgba(138,109,31,.12);color:var(--amber)}
+.iw .mm{font-size:12px;color:var(--muted)}
+.ist{flex:0 0 auto;font-size:11px;font-weight:700;color:var(--muted);text-align:right;white-space:nowrap}
+.ist.warn{color:var(--warn)}
+.ist.ld{color:var(--load)}
+.packnote{font-size:12px;color:var(--muted);margin:-2px 2px 10px}
+
+/* 정산 */
+.msum .big{font-size:24px;font-weight:900;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.mtab{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;font-variant-numeric:tabular-nums}
+.mtab th{font-size:11.5px;color:var(--muted);font-weight:700;text-align:right;padding:4px 4px;border-bottom:1px solid var(--line)}
+.mtab th:first-child,.mtab td:first-child{text-align:left}
+.mtab td{text-align:right;padding:7px 4px;border-bottom:1px solid var(--line)}
+.mtab tr:last-child td{border-bottom:0}
+.mtab td.p{color:var(--accent);font-weight:800}
+.mtab td.m{color:var(--warn);font-weight:800}
+.mtab tr.me td:first-child{color:var(--accent);font-weight:800}
+.mtab tr:not(:first-child){cursor:pointer}
+.mtab tr.on td{background:var(--soft)}
+.mtab tr.on td:first-child{text-decoration:underline;text-underline-offset:3px}
+.xfer{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.xfer:last-child{border-bottom:0}
+.xfer .xt{flex:1 1 auto;min-width:0}
+.xfer .xt b{display:block;font-size:14.5px;font-weight:800;letter-spacing:-.02em}
+.xfer .xt .amt{font-size:17px;font-weight:900;font-variant-numeric:tabular-nums}
+.xfer .xt small{display:block;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.xfer .btn{flex:0 0 auto;min-height:38px;padding:0 12px;font-size:13px}
+.xfer.mine{background:rgba(var(--accent-rgb),.06);margin:0 -16px;padding:10px 16px}
+.mrow{display:flex;align-items:center;gap:10px;width:100%;appearance:none;border:0;border-bottom:1px solid var(--line);background:transparent;
+  font:inherit;color:inherit;text-align:left;padding:10px 14px;cursor:pointer;min-height:54px}
+.mrow:last-child{border-bottom:0}
+.mrow .mt{flex:1 1 auto;min-width:0}
+.mrow .mt b{display:block;font-size:14.5px;font-weight:700;letter-spacing:-.02em;overflow-wrap:anywhere}
+.mrow .mt small{display:block;font-size:12px;color:var(--muted);margin-top:1px}
+.mrow .ma{flex:0 0 auto;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
+.mrow.pay{background:var(--soft)}
+.mrow.pay .ma{color:var(--muted)}
+.amtin{font-size:26px !important;font-weight:900;text-align:right;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.splitrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.splitrow:last-child{border-bottom:0}
+.splitrow .sn{flex:1 1 auto;font-weight:700;font-size:14px;min-width:0}
+.splitrow .sn small{display:block;font-weight:500;color:var(--muted);font-size:11.5px}
+.splitrow.off .sn{color:var(--muted);text-decoration:line-through}
+.step{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:12px;overflow:hidden;flex:0 0 auto}
+.step button{appearance:none;border:0;background:var(--bg);width:42px;height:40px;font:inherit;font-size:18px;font-weight:800;color:var(--ink);cursor:pointer}
+.step span{min-width:34px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums}
+.splitrow .sh{flex:0 0 74px;text-align:right;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* 설정 — 팀 줄 */
+.teamrow{border:1px solid var(--line);border-radius:12px;padding:10px;margin:0 0 8px;background:var(--bg)}
+.teamrow .row{gap:6px}
+.teamrow input{min-height:42px;padding:8px 10px;font-size:15px;background:var(--card)}
+.teamrow .tn{flex:1 1 40%}
+.teamrow .tp{flex:1 1 55%}
+.teamrow .tb{margin-top:6px}
+.teamrow .x{flex:0 0 auto;width:38px;min-height:38px;padding:0;color:var(--muted)}
+.chips.wrap6{gap:6px}
+.chips .chip.spc{border-style:dashed}
+.fdate{display:flex;gap:8px}
+.btn.datebtn{width:100%;justify-content:flex-start;font-weight:700;background:var(--bg);min-height:48px}
+.btn.datebtn.empty{color:var(--muted);font-weight:500}
+#rangeModal{z-index:63}
+.cal .d.mid{background:rgba(var(--accent-rgb),.14);border-color:rgba(var(--accent-rgb),.28)}
+.cal .d.sun{color:var(--warn)} .cal .d.sat{color:#3a6fb0}
+.cal .d.on{color:var(--on-accent)}
+/* 🔒 PIN */
+.lockcard{text-align:center;padding:30px 18px}
+.lockcard input{max-width:180px;text-align:center;letter-spacing:.3em;margin:0 auto}
+/* 일정 줄 — 담당·할 일 */
+.prl .pw{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;align-items:center}
+.prl .pm{font-size:12.5px;color:var(--muted);white-space:pre-wrap}
+.prl .pt.slot{font-size:12.5px;color:var(--amber)}
+.prl.hasplc{border-bottom:0}
+.plan .plc{display:block;margin:-2px 0 0;padding:0 0 8px 58px;border-bottom:1px solid var(--line);font-size:12.5px;font-weight:700;color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 레퍼런스 가져오기 */
+.rcat{margin:12px 0 4px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:800}
+.rcat button{appearance:none;border:0;background:none;font:inherit;font-size:12px;font-weight:700;color:var(--accent);cursor:pointer;padding:4px 2px}
+.rrow{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--line);cursor:pointer;font-size:14px}
+.rrow input{width:20px;height:20px;flex:0 0 auto;accent-color:var(--accent)}
+.rrow .rn{flex:1 1 auto;min-width:0}
+.rrow small{display:block;font-size:11.5px;color:var(--muted)}
+.rrow.have{opacity:.45;cursor:default}
+.fdate input{flex:1 1 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <button class="titlebtn" id="titleBtn" type="button" title="여행 가자">
+    <span class="mark" aria-hidden="true">여</span>
+    <span class="tt"><h1>여행 가자</h1><p class="sub" id="subtitle">공지 · 준비물 · 정산을 한곳에</p></span>
+  </button>
+  <span class="hact">
+    <button class="btn pickbtn" id="pickBtn" type="button"><span class="pbt" id="pickName">🧳 여행 고르기</span><span class="pcar">▾</span></button>
+  </span>
+</header>
+
+<!-- 처음 화면 -->
+<section id="view-home" hidden>
+  <div class="card">
+    <h2 style="margin:0 0 4px">같이 가는 여행 준비</h2>
+    <p class="hint">여행을 만들고 <b>링크만 단톡방에 보내면</b>, 다 같이 보고 고쳐요.</p>
+    <ul style="margin:0 0 14px;padding-left:20px;font-size:14px;line-height:1.75">
+      <li><b>📢 공지·일정</b> — 장소·예약 정보·메뉴·담당을 한눈에</li>
+      <li><b>✅ 준비물</b> — 한 번 누르면 준비(짐 쌈), 한 번 더 누르면 챙김(차에 실음)</li>
+      <li><b>💰 정산</b> — 산 건 바로 적고, 누가 누구에게 얼마 보낼지 자동 계산</li>
+    </ul>
+    <button class="btn primary wide" id="homeNew" type="button">＋ 새 여행 만들기</button>
+    <button class="btn wide" id="homeAll" type="button" style="margin-top:8px;height:48px;font-size:14.5px">🔎 등록된 여행 찾기</button>
+  </div>
+  <div class="card" id="homeMine" hidden>
+    <h2 style="margin:0 0 4px">이 기기에서 연 여행</h2>
+    <div class="list" id="homeMineList"></div>
+  </div>
+</section>
+
+<!-- 🔒 PIN 이 걸린 여행 — 기기마다 한 번 -->
+<section id="view-lock" hidden>
+  <div class="card lockcard">
+    <div style="font-size:30px">🔒</div>
+    <h2 style="margin:6px 0 2px" id="lockName"></h2>
+    <p class="hint" style="margin:0 0 16px" id="lockHint">PIN 을 넣어주세요. 이 기기에선 한 번만 넣으면 돼요.</p>
+    <input type="text" id="lockPin" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="PIN">
+    <button class="btn primary wide" id="lockGo" type="button" style="margin-top:12px">들어가기</button>
+  </div>
+</section>
+
+<!-- 여행 -->
+<section id="view-trip" hidden>
+  <div class="card thead">
+    <p class="eyebrow" id="tDate"></p>
+    <h2 class="bigtitle" id="tName"></h2>
+    <div class="tplace" id="tPlace"></div>
+    <button class="mebar" id="meBar" type="button"></button>
+    <div class="sheettools">
+      <button class="btn soft" id="shareBtn" type="button">🔗 단톡방에 공유</button>
+      <button class="btn setbtn" id="setBtn" type="button">⚙ 여행 설정</button>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <div class="seg" role="tablist">
+      <button class="segb" type="button" role="tab" data-tab="info">📢 공지·일정</button>
+      <button class="segb" type="button" role="tab" data-tab="pack">✅ 준비물</button>
+      <button class="segb" type="button" role="tab" data-tab="money">💰 정산</button>
+    </div>
+  </div>
+
+  <!-- 📢 공지 · 일정 -->
+  <div id="tab-info" hidden>
+    <div class="card plan">
+      <div class="spread" style="margin-bottom:8px"><h2 style="margin:0">🗓 일정 · 메뉴 · 담당</h2>
+        <button class="btn sm edbtn" id="planAdd" type="button">＋ 일정</button></div>
+      <div id="planList"></div>
+    </div>
+    <div id="noteList"></div>
+    <button class="btn wide" id="noteAdd" type="button" style="height:48px;font-size:14.5px">＋ 공지 추가</button>
+  </div>
+
+  <!-- ✅ 준비물 -->
+  <div id="tab-pack" hidden>
+    <!-- 버튼 하나로 — 한 번 = 준비(짐 쌈), 두 번 = 챙김(차에 실음), 세 번 = 처음으로
+         (2026-10-09 Benny: "챙김 버튼도 단일화, 한 번 누르면 준비, 한 번 더 누르면 챙김") -->
+    <div class="card pgcard">
+      <div class="pgtop"><span class="lg"><i class="dot1"></i>준비 <b id="pgPrep"></b></span><span class="lg"><i class="dot2"></i>챙김 <b id="pgTake"></b></span><span class="pgn" id="pgTot"></span></div>
+      <div class="pbar2"><i class="b2" id="pgB2"></i><i class="b1" id="pgB1"></i></div>
+      <p class="pghint">한 번 누르면 <b>준비</b>(짐 쌈) · 한 번 더 누르면 <b>챙김</b>(차에 실음)</p>
+    </div>
+    <!-- 켜고 끄는 두 개만 (2026-10-09 Benny: "버튼 많으면 뭘 봐야 할지 힘들어") -->
+    <div class="fbar">
+      <button class="chip tg" type="button" id="fMine">내 것만</button>
+      <button class="chip tg" type="button" id="fLeft">안 챙긴 것만</button>
+      <button class="chip tg" type="button" id="fEdit" style="margin-left:auto">✎ 목록 고치기</button>
+    </div>
+    <!-- 고치기 모드에서만 — 평소엔 줄을 누르면 바로 체크 (2026-10-09: 이름을 눌렀는데 수정 창이 떠서 헷갈림) -->
+    <div class="addrow" id="editBar" hidden><button class="btn primary" id="itemAdd" type="button">＋ 준비물 추가</button>
+      <button class="btn soft" id="refBtn" type="button">📋 레퍼런스에서</button></div>
+    <div id="packList"></div>
+  </div>
+
+  <!-- 💰 정산 -->
+  <div id="tab-money" hidden>
+    <div class="addrow"><button class="btn primary" id="expAdd" type="button" style="height:52px;font-size:16px">＋ 지출 적기</button></div>
+    <div class="card msum" id="mSum"></div>
+    <div class="card" id="mXfer"></div>
+    <div id="mList"></div>
+  </div>
+</section>
+
+<footer id="foot"></footer>
+<p class="more"><a href="https://benny3s.github.io/" target="_blank" rel="noopener">🧭 개발자의 다른 프로젝트도 구경하기 →</a></p>
+</div>
+
+<!-- ══════════ 여행 고르기 ══════════ -->
+<div class="modal" id="pickModal" hidden>
+  <div class="sheet tall" role="dialog" aria-modal="true">
+    <div class="spread">
+      <h2 style="margin:0">여행 고르기</h2>
+      <span class="row tight" style="flex:0 0 auto;gap:6px">
+        <button class="btn sm" id="homeBtn" type="button">🏠 홈으로</button>
+        <button class="btn ghost" type="button" data-close>닫기</button>
+      </span>
+    </div>
+    <button class="btn primary" id="newBtn" type="button" style="width:100%;margin-top:12px">＋ 새 여행 만들기</button>
+    <button class="btn" id="allBtn" type="button" style="width:100%;margin-top:8px">🔎 등록된 여행 찾기</button>
+    <button class="btn soft" id="introBtn" type="button" style="width:100%;margin-top:8px">📣 여행 가자 소개하기</button>
+    <div id="mineWrap" hidden>
+      <div class="mine-h"><span>이 기기에서 연 여행</span><span>✕ = 이 기기에서만 지우기</span></div>
+      <div class="list" id="mineList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 누구세요 — 약속 잡자처럼 이름 하나 = 한 사람 (부부·가족은 '베니네'처럼 하나로 등록해도 됨) ══════════ -->
+<div class="modal" id="meModal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" style="max-width:400px">
+    <div class="spread"><h2 style="margin:0">누구세요?</h2>
+      <button class="iconbtn" type="button" data-close aria-label="닫기">✕</button></div>
+    <p class="hint" style="margin:6px 0 12px">이 기기에만 기억해요. 부부·가족은 ‘베니네’처럼 하나로 등록하면 정산도 하나로 돼요.</p>
+    <div class="chips" id="meChips"></div>
+  </div>
+</div>
+
+<!-- ══════════ 새 여행 ══════════ -->
+<div class="modal" id="newModal" hidden>
+  <div class="sheet tall" role="dialog" aria-modal="true" style="max-width:460px">
+    <div class="spread"><h2 style="margin:0">새 여행</h2>
+      <button class="iconbtn" type="button" data-close aria-label="닫기">✕</button></div>
+    <label class="fld" style="margin-top:10px"><span>여행 이름</span><input type="text" id="n_name" maxlength="40" placeholder="예: 10월 충주 캠핑"></label>
+    <div class="fld"><span>날짜</span><button class="btn datebtn" id="n_dates" type="button"></button><input type="hidden" id="n_start"><input type="hidden" id="n_end"></div>
+    <label class="fld"><span>같이 가는 사람 (선택) — 쉼표로. 부부·가족은 ‘베니네’처럼 하나로. 나중에 각자 ‘누구세요’에서 추가해도 돼요</span>
+      <input type="text" id="n_people" maxlength="120" placeholder="예: 베니"></label>
+    <div class="fld"><span>준비물 목록 — 레퍼런스에서 시작</span><div class="chips wrap6" id="n_tpl"></div></div>
+    <label class="fld"><span>PIN (선택) — 숫자 4~8자리. 걸면 링크 + PIN 이 있어야 들어와요</span>
+      <input type="text" id="n_pin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="비우면 링크만으로 들어와요"></label>
+    <button class="btn primary wide" id="n_make" type="button" style="margin-top:6px">만들기 →</button>
+  </div>
+</div>
+
+<!-- ══════════ 준비물 추가·수정 ══════════ -->
+<div class="modal" id="itemModal" hidden>
+  <div class="sheet tall" role="dialog" aria-modal="true" style="max-width:460px">
+    <div class="spread"><h2 style="margin:0" id="itemTitle">준비물 추가</h2>
+      <button class="iconbtn" type="button" data-close aria-label="닫기">✕</button></div>
+    <label class="fld" style="margin-top:10px" id="i_nameFld"><span>이름</span><input type="text" id="i_name" maxlength="60" placeholder="예: 텐트"></label>
+    <details class="nmore" id="i_bulkWrap" style="margin:-4px 0 10px;border-top:0">
+      <summary style="min-height:36px;white-space:nowrap">＋ 여러 개 한 번에 <span>한 줄에 하나 · 엑셀 붙여넣기 OK</span></summary>
+      <textarea id="i_bulk" rows="6" placeholder="텐트&#10;에어매트&#10;공기주입기"></textarea>
+    </details>
+    <div class="fld"><span>분류</span><div class="chips wrap6" id="i_cats"></div></div>
+    <div class="fld"><span>누가 챙겨요? — 이름은 여러 명 가능</span><div class="chips wrap6" id="i_who"></div>
+      <p class="hint" style="margin:6px 0 0;font-size:12px"><b>공통</b> 하나만 있으면 돼요 · <b>각자</b> 사람마다 따로 챙겨요 · <b>🛒 마트</b> 가서 사요 · <b>📍 현장</b> 거기 있거나 거기서 사요</p></div>
+    <label class="fld"><span>메모 (선택)</span><input type="text" id="i_memo" maxlength="200" placeholder="예: 2개, 큰 거"></label>
+    <div class="row" style="gap:8px">
+      <button class="btn primary" id="i_save" type="button" style="flex:1 1 auto">저장</button>
+      <button class="btn" id="i_more" type="button">저장 + 하나 더</button>
+    </div>
+    <button class="btn ghost danger" id="i_del" type="button" style="margin-top:10px">이 준비물 지우기</button>
+  </div>
+</div>
+
+<!-- ══════════ 지출 적기 ══════════ -->
+<div class="modal" id="expModal" hidden>
+  <div class="sheet tall" role="dialog" aria-modal="true" style="max-width:460px">
+    <div class="spread"><h2 style="margin:0" id="expTitle">지출 적기</h2>
+      <button class="iconbtn" type="button" data-close aria-label="닫기">✕</button></div>
+    <label class="fld" style="margin-top:10px"><span>금액 (원)</span><input type="text" id="e_amt" class="amtin" inputmode="numeric" autocomplete="off" placeholder="0"></label>
+    <label class="fld"><span>뭐 샀어요?</span><input type="text" id="e_title" maxlength="60" placeholder="예: 농협 장보기"></label>
+    <div class="fld"><span>누가 냈어요?</span><div class="chips wrap6" id="e_payer"></div></div>
+    <!-- 대부분 '다 같이 똑같이' 라 나누기·메모는 접어 둔다 → 보통은 금액·내용·저장 세 번이면 끝 -->
+    <details class="nmore" id="e_opt" style="margin:0 0 12px">
+      <summary>나누기 · 메모 <span id="e_optSum"></span></summary>
+      <div class="row tight" style="margin:0 0 6px"><button class="btn sm" id="e_eq" type="button">다 같이 똑같이</button>
+        <span class="hint" style="font-size:12px">숫자 = 몫 (부부면 2) · 0 = 빠짐</span></div>
+      <div id="e_split"></div>
+      <label class="fld" style="margin-top:10px"><span>메모</span><input type="text" id="e_memo" maxlength="300" placeholder="예: 꽃게·오징어·새우"></label>
+    </details>
+    <button class="btn primary wide" id="e_save" type="button">저장</button>
+    <button class="btn ghost danger" id="e_del" type="button" style="margin-top:10px">이 지출 지우기</button>
+  </div>
+</div>
+
+<!-- ══════════ 공지 카드 ══════════ -->
+<div class="modal" id="noteModal" hidden>
+  <div class="sheet tall" role="dialog" aria-modal="true" style="max-width:520px">
+    <div class="spread"><h2 style="margin:0" id="noteTitle">공지</h2>
+      <button class="iconbtn" type="button" data-close aria-label="닫기">✕</button></div>
+    <label class="fld" style="margin-top:10px"><span>제목</span><input type="text" id="o_title" maxlength="40" placeholder="예: 📢 예약 정보"></label>
+    <label class="fld"><span>내용 — 주소·전화번호·링크는 눌러지게 보여요</span><textarea id="o_body" maxlength="4000" rows="12"></textarea></label>
+    <button class="btn primary wide" id="o_save" type="button">저장</button>
+    <div class="row" style="gap:8px;margin-top:10px" id="o_tools">
+      <button class="btn sm" id="o_up" type="button">↑ 위로</button>
+      <button class="btn sm" id="o_down" type="button">↓ 아래로</button>
+      <button class="btn ghost danger" id="o_del" type="button" style="margin-left:auto">지우기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 일정 한 줄 — 시간(또는 끼니) · 내용 · 담당 · 할 일 (2026-10-09 일정·메뉴·담당 합침) ══════════ -->
+<div class="modal" id="planModal" hidden>
+  <div class="sheet tall" role="dialog" aria-modal="true" style="max-width:460px">
+    <div class="spread"><h2 style="margin:0" id="planTitle">일정</h2>
+      <button class="iconbtn" type="button" data-close aria-label="닫기">✕</button></div>
+    <div class="fld" style="margin-top:10px"><span>날짜</span><div class="chips wrap6" id="p_days"></div></div>
+    <div class="fld"><span>언제</span><div class="chips wrap6" id="p_slots"></div>
+      <input type="time" id="p_time" style="margin-top:8px"></div>
+    <label class="fld"><span>내용 — 일정이나 메뉴</span><input type="text" id="p_text" maxlength="200" placeholder="예: 프렌치토스트, 모카포트 커피"></label>
+    <label class="fld"><span>장소 (선택) — 식당 이름·주소 또는 지도 링크. 누르면 지도로 열려요</span><input type="text" id="p_place" maxlength="200" placeholder="예: 충주 ○○식당"></label>
+    <div class="fld"><span>담당 (선택)</span><div class="chips wrap6" id="p_who"></div></div>
+    <label class="fld"><span>할 일 (선택)</span><input type="text" id="p_memo" maxlength="300" placeholder="예: 프렌치토스트 담가오기"></label>
+    <button class="btn primary wide" id="p_save" type="button">저장</button>
+    <button class="btn ghost danger" id="p_del" type="button" style="margin-top:10px">이 일정 지우기</button>
+  </div>
+</div>
+
+<!-- ══════════ 여행 설정 ══════════ -->
+<div class="modal" id="setModal" hidden>
+  <div class="sheet tall" role="dialog" aria-modal="true" style="max-width:480px">
+    <div class="spread"><h2 style="margin:0">여행 설정</h2>
+      <button class="iconbtn" type="button" data-close aria-label="닫기">✕</button></div>
+    <label class="fld" style="margin-top:10px"><span>여행 이름</span><input type="text" id="s_name" maxlength="40"></label>
+    <div class="fld"><span>날짜</span><button class="btn datebtn" id="s_dates" type="button"></button><input type="hidden" id="s_start"><input type="hidden" id="s_end"></div>
+    <label class="fld"><span>장소</span><input type="text" id="s_place" maxlength="60" placeholder="예: 캠핑808"></label>
+    <label class="fld"><span>주소 — 누르면 지도</span><input type="text" id="s_addr" maxlength="120"></label>
+    <label class="fld"><span>연락처</span><input type="text" id="s_phone" maxlength="40" inputmode="tel"></label>
+    <div class="fld"><span>사람 — 이름 · 받는 계좌(선택). 이름 하나가 정산 하나예요</span>
+      <div id="s_teams"></div>
+      <button class="btn sm" id="s_teamAdd" type="button">＋ 사람 추가</button></div>
+    <button class="btn primary wide" id="s_save" type="button">저장</button>
+    <div class="fld" style="margin-top:18px"><span id="s_pinLbl">PIN</span>
+      <div class="row nowrap"><input type="text" id="s_pin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="새 PIN (비우면 해제)" style="flex:1 1 auto">
+        <button class="btn" id="s_pinSave" type="button">바꾸기</button></div></div>
+    <details class="nmore" style="margin-top:14px">
+      <summary>여행 지우기</summary>
+      <p class="hint">공지·준비물·정산까지 전부 지워지고 되돌릴 수 없어요. 링크를 가진 모두에게서 사라져요.</p>
+      <button class="btn ghost danger" id="s_delete" type="button">이 여행 지우기</button>
+    </details>
+  </div>
+</div>
+
+<!-- ══════════ 날짜 고르기 — 가는 날 · 오는 날 두 번 ══════════ -->
+<div class="modal" id="rangeModal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" style="max-width:380px">
+    <div class="spread"><h2 style="margin:0">날짜</h2>
+      <button class="iconbtn" type="button" data-close aria-label="닫기">✕</button></div>
+    <p class="hint" id="rgHint" style="margin:6px 0 0;font-weight:700"></p>
+    <div class="calhead"><button class="nav" id="rgPrev" type="button" aria-label="이전 달">‹</button><span class="ym" id="rgYm"></span><button class="nav" id="rgNext" type="button" aria-label="다음 달">›</button></div>
+    <div class="cal" id="rgCal"></div>
+    <div class="row" style="justify-content:space-between;margin-top:12px">
+      <button class="btn ghost" id="rgClear" type="button">날짜 지우기</button>
+      <button class="btn primary" id="rgOk" type="button">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 등록된 여행 — 약속 잡자·밴드매니저처럼 목록은 누구나, 🔒 는 PIN ══════════ -->
+<div class="modal" id="allModal" hidden>
+  <div class="sheet tall" role="dialog" aria-modal="true">
+    <div class="spread"><h2 style="margin:0">등록된 여행</h2>
+      <button class="btn ghost" type="button" data-close>닫기</button></div>
+    <p class="hint" style="margin:6px 0 0">🔒 = PIN 을 아는 사람만 들어가요</p>
+    <div class="list" id="allList" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- ══════════ 레퍼런스에서 가져오기 ══════════ -->
+<div class="modal" id="refModal" hidden>
+  <div class="sheet tall" role="dialog" aria-modal="true" style="max-width:480px">
+    <div class="spread"><h2 style="margin:0">레퍼런스에서 가져오기</h2>
+      <button class="iconbtn" type="button" data-close aria-label="닫기">✕</button></div>
+    <div class="chips wrap6" id="r_src" style="margin-top:10px"></div>
+    <p class="hint" id="r_hint" style="margin:8px 0 0"></p>
+    <div id="r_list"></div>
+    <button class="btn primary wide" id="r_go" type="button" style="margin-top:14px">가져오기</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="../when/core.js?v=2026-10-08f"></script>
+<script>/* 여행 가자 — benny3s.github.io/trip/  (2026-10-09)
+   시작: 캠핑 구글 시트(준비물·부부별 지출·공지)가 불편했던 세 가지
+     ① 짐 쌀 때 체크 + 차에 실을 때 체크를 엑셀 한 칸으로 하다 보니 자꾸 빠뜨림 → 버튼 하나 세 단계: 0 아직 → 1 준비 → 2 챙김
+     ② 추가 구매를 바로 적기 어렵고 누가 누구에게 보낼지 계산이 힘듦 → ＋ 지출 적기 · 보낼 돈 자동 · 보냈어요 = 송금 기록
+     ③ 공지·일정이 한눈에 안 들어옴 → 일정 타임라인 + 공지 카드, 누구나 고침
+   저장 (규칙: secretary/benny-apps/firestore.rules '여행 가자')
+     tripIdx/{pid}                링크(?t=pid) — 이름·🔒 만
+     trips/{K}                    K = sha256(pid + ":" + PIN) (PIN 없으면 빈 PIN) — 밴드매니저와 같은 선택 PIN
+                                  pid·이름·날짜·장소·주소·연락처·teams[{id,name,people,bank}]·cats
+       /items/{iid}               준비물 {cat,name,who[],memo,ord,st{팀id|"_": 0 아직·1 준비·2 챙김}}
+       /money/{mid}               {kind exp|pay, title, amt, payer 팀id, split{팀id: 몫}, memo}
+       /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
+       /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
+   목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
+const BUILD = "2026-10-09g";
+
+/* ── 작은 도구 ── */
+function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
+function rid(n){ const a = "abcdefghijkmnpqrstuvwxyz23456789"; return Array.from(crypto.getRandomValues(new Uint8Array(n))).map(x => a[x % a.length]).join(""); }
+function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function btn(cls, text, fn){ const b = el("button", cls, text); b.type = "button"; if (fn) b.onclick = fn; return b; }
+const won = n => (Math.round(n) || 0).toLocaleString("ko-KR") + "원";
+const C = n => db.collection(n);
+const T = () => C("trips").doc(TID);
+const SUBS = ["items", "money", "notes", "plan"];
+async function sha256(t){ const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)); return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, "0")).join(""); }
+const keyOf = (pid, pin) => sha256(pid + ":" + (pin || ""));
+const pinOk = p => /^\d{4,8}$/.test(p);
+const linkOf = () => location.origin + location.pathname + "?t=" + PID;
+const TSV = () => firebase.firestore.FieldValue.serverTimestamp();
+const ms = t => (t && t.toMillis) ? t.toMillis() : (typeof t === "number" ? t : Date.now() + 1e9);   // 아직 서버 시각이 없는(방금 쓴) 건 맨 뒤
+function daysBetween(a, b){ return Math.round((dObj(b) - dObj(a)) / 864e5); }
+function addDays(d, n){ const o = dObj(d); o.setDate(o.getDate() + n); return iso(o); }
+
+/* ── 상태 ── */
+let PID = "", IDX = null, LOCK = "";               // 링크 id · tripIdx 문서 · 잠금 화면 안내 글 (있으면 잠금 화면)
+let TID = "", TRIP = null, ITEMS = [], MONEY = [], NOTES = [], PLAN = [], unsub = [];
+let ME = "";                                       // 이 기기의 팀 id
+let TAB = ls("tr_tab") || "info";
+let FMINE = ls("tr_fmine") === "1", FLEFT = ls("tr_fleft") === "1";
+let MFILTER = "";
+let PEDIT = false;                                 // 준비물 '목록 고치기' 모드
+let opening = false;
+const TEAMS = () => (TRIP && TRIP.teams) || [];
+const teamOf = id => TEAMS().find(t => t.id === id) || null;
+const teamName = id => { const t = teamOf(id); return t ? t.name : "(지운 사람)"; };
+/* 담당 고르기 칩 — 이름마다 people(옛 여행처럼 한 이름 안에 사람이 나뉘어 있으면 그 사람들) 또는 이름 그대로 */
+const PEOPLE = () => TEAMS().flatMap(t => (t.people && t.people.length) ? t.people : [t.name]);
+const myPeople = () => { const t = teamOf(ME); return t ? ((t.people && t.people.length) ? t.people : [t.name]) : []; };
+/* 누가 — 사람 이름 + 특별 4개 */
+const SPECIAL = ["공통", "각자", "마트", "현장"];
+const SP_LABEL = { "공통": "공통", "각자": "각자", "마트": "🛒 마트", "현장": "📍 현장" };
+
+/* ── 이 기기에서 연 여행 ── */
+function mine(){ try { const a = JSON.parse(ls("tr_mine") || "[]"); return Array.isArray(a) ? a.filter(x => x && x.id) : []; } catch(e){ return []; } }
+function mineAdd(id, name, start){ const a = mine().filter(x => x.id !== id); a.unshift({ id, name: name || "여행", start: start || "" }); ls("tr_mine", JSON.stringify(a.slice(0, 30))); }
+async function mineForget(id){
+  const x = mine().find(m => m.id === id);
+  if (!await ask({ title: "이 기기 목록에서 지울까요?", text: "‘" + (x ? x.name : "이 여행") + "’ — 여행은 그대로 있어요. 다시 보려면 링크로 들어오면 돼요.", ok: "지우기" })) return;
+  ls("tr_mine", JSON.stringify(mine().filter(m => m.id !== id)));
+  if (id === PID){ if (!$("#pickModal").hidden) closeModal("pickModal"); afterBack(goHome); } else renderPick();
+}
+
+/* ═══ 열기 · 지켜보기 ═══
+   링크 pid → tripIdx 확인 → 열쇠 K (기억해 둔 것 / PIN 으로 / PIN 없으면 빈 PIN) → trips/K 구독 */
+function closeTrip(){ unsub.forEach(f => { try { f(); } catch(e){} }); unsub = []; TID = ""; TRIP = null; ITEMS = []; MONEY = []; NOTES = []; PLAN = []; }
+function setUrl(){ try { history.replaceState(history.state, "", location.pathname + (PID ? "?t=" + PID : "")); } catch(e){} }
+let rq = 0;
+/* 여러 구독이 한꺼번에 와도 한 번만 그린다. requestAnimationFrame 은 뒤에 가려진 탭에서 멈춰서 안 씀 */
+function renderSoon(){ if (rq) return; rq = setTimeout(() => { rq = 0; renderAll(); }, 16); }
+async function openTrip(pid, pin){
+  closeTrip(); PID = pid; IDX = null; LOCK = ""; opening = true;
+  setUrl(); renderAll();
+  try { await openTrip_(pid, pin); } finally { opening = false; renderAll(); }
+}
+async function openTrip_(pid, pin){
+  const ix = await C("tripIdx").doc(pid).get().catch(() => null);
+  if (PID !== pid) return;
+  if (!ix || !ix.exists){ PID = ""; setUrl(); setStatus("없는 여행이에요 — 링크를 확인해 주세요", "err"); return; }
+  IDX = ix.data();
+  const saved = ls("tr_key:" + pid);
+  let k = pin !== undefined ? await keyOf(pid, pin) : saved;
+  if (!k && !IDX.locked) k = await keyOf(pid, "");
+  if (!k){ LOCK = "PIN 을 넣어주세요. 이 기기에선 한 번만 넣으면 돼요."; return; }
+  let d = await C("trips").doc(k).get().catch(() => null);
+  if ((!d || !d.exists) && pin === undefined && !IDX.locked){          // 기억해 둔 열쇠가 옛것인데 지금은 PIN 이 풀린 여행
+    const k0 = await keyOf(pid, "");
+    if (k0 !== k){ k = k0; d = await C("trips").doc(k).get().catch(() => null); }
+  }
+  if (PID !== pid) return;
+  if (!d || !d.exists){
+    ls("tr_key:" + pid, "");
+    LOCK = pin !== undefined ? "PIN 이 맞지 않아요" : (saved ? "PIN 이 바뀌었어요 — 다시 넣어주세요" : "여행을 열지 못했어요");
+    return;
+  }
+  ls("tr_key:" + pid, k);
+  watchTrip(pid, k);
+}
+function watchTrip(pid, k){
+  TID = k; ME = ls("tr_me:" + pid);
+  const sub = (name, set) => unsub.push(T().collection(name).onSnapshot(s => { set(s.docs.map(d => Object.assign({ id: d.id }, d.data()))); renderSoon(); },
+    e => setStatus("불러오기 실패 — " + errText(e), "err")));
+  unsub.push(T().onSnapshot(s => {
+    if (!s.exists){
+      if (MOVING) return;                                          // 내가 PIN 을 바꾸는 중
+      /* 다른 기기에서 PIN 을 바꿨거나(→ 다시 열기) 여행을 지웠다 */
+      closeTrip(); renderAll();
+      C("tripIdx").doc(pid).get().then(x => {
+        if (x.exists) openTrip(pid); else { PID = ""; setUrl(); setStatus("이 여행은 지워졌어요", "err"); renderAll(); }
+      });
+      return;
+    }
+    TRIP = s.data();
+    if (ME && !teamOf(ME)) ME = "";
+    mineAdd(PID, TRIP.name, TRIP.start);
+    renderSoon();
+  }, e => setStatus("불러오기 실패 — " + errText(e), "err")));
+  SUBS.forEach(c => sub(c, a => { if (c === "items") ITEMS = a; if (c === "money") MONEY = a; if (c === "notes") NOTES = a; if (c === "plan") PLAN = a; }));
+}
+let MOVING = false;
+function goHome(){ closeTrip(); PID = ""; IDX = null; LOCK = ""; setUrl(); renderAll(); window.scrollTo(0, 0); }
+$("#lockGo").onclick = () => { const p = $("#lockPin").value.trim(); if (p && PID) openTrip(PID, p); };
+$("#lockPin").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); $("#lockGo").click(); } });
+/** 여행 통째로 옮기기 (PIN 바꾸기) — 새 열쇠 자리에 복사하고 옛 자리를 지운다 */
+async function moveTrip(fromK, toK){
+  const src = C("trips").doc(fromK), dst = C("trips").doc(toK);
+  const d = await src.get(); if (!d.exists) throw new Error("여행을 못 찾았어요");
+  await dst.set(d.data());
+  const docs = [];
+  for (const c of SUBS) (await src.collection(c).get()).docs.forEach(x => docs.push([c, x]));
+  for (let i = 0; i < docs.length; i += 400){ const b = db.batch(); docs.slice(i, i + 400).forEach(([c, x]) => b.set(dst.collection(c).doc(x.id), x.data())); await b.commit(); }
+  for (let i = 0; i < docs.length; i += 400){ const b = db.batch(); docs.slice(i, i + 400).forEach(([c, x]) => b.delete(x.ref)); await b.commit(); }
+  await src.delete();
+}
+async function run(p, okMsg){
+  try { await p; if (okMsg) setStatus(okMsg, "ok"); return true; }
+  catch(e){ setStatus("실패 — " + errText(e), "err"); return false; }
+}
+
+/* ═══ 화면 ═══ */
+function renderAll(){
+  const has = !!(TID && TRIP);
+  $("#foot").textContent = "여행 가자 " + BUILD;
+  const locked = !has && !!PID && !!LOCK && !opening;
+  $("#view-trip").hidden = !has;
+  $("#view-lock").hidden = !locked;
+  $("#view-home").hidden = has || opening || locked || !!PID;
+  if (locked){
+    $("#lockName").textContent = IDX ? IDX.name : "여행";
+    $("#lockHint").textContent = LOCK; $("#lockHint").style.color = /맞지|바뀌|못/.test(LOCK) ? "var(--warn)" : "";
+    $("#lockPin").value = ""; setTimeout(() => { try { $("#lockPin").focus(); } catch(e){} }, 60);
+  }
+  $("#pickName").textContent = has ? "🧳 " + TRIP.name : (locked && IDX ? "🔒 " + IDX.name : "🧳 여행 고르기");
+  document.title = has ? TRIP.name + " — 여행 가자" : "여행 가자";
+  if (!has){ renderHome(); return; }
+  renderHead();
+  $$(".tabbar .segb").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === TAB)));
+  ["info", "pack", "money"].forEach(t => $("#tab-" + t).hidden = t !== TAB);
+  if (TAB === "info") renderInfo();
+  if (TAB === "pack") renderPack();
+  if (TAB === "money") renderMoney();
+}
+function renderHome(){
+  const a = mine();
+  $("#homeMine").hidden = !a.length;
+  const box = $("#homeMineList"); box.innerHTML = "";
+  a.forEach(x => box.appendChild(tripRow(x, null)));
+}
+function dateLine(){
+  const s = TRIP.start, e = TRIP.end;
+  if (!s) return "";
+  if (!e || e === s) return fmtFull(s);
+  const n = daysBetween(s, e);
+  return fmtFull(s) + " – " + fmtFull(e) + " · " + n + "박 " + (n + 1) + "일";
+}
+function dday(){
+  const s = TRIP.start, e = TRIP.end || s, t = todayIso();
+  if (!s) return null;
+  if (t < s){ const n = daysBetween(t, s); return { t: n === 1 ? "내일 출발" : "D-" + n, past: false }; }
+  if (t <= e) return { t: "여행 중 · " + (daysBetween(s, t) + 1) + "일째", past: false };
+  return { t: "다녀온 여행", past: true };
+}
+function renderHead(){
+  const ed = $("#tDate"); ed.innerHTML = ""; ed.textContent = dateLine();
+  const d = dday(); if (d) ed.appendChild(el("span", "dd" + (d.past ? " past" : ""), d.t));
+  $("#tName").textContent = TRIP.name;
+  const pl = $("#tPlace"); pl.innerHTML = "";
+  if (TRIP.place) pl.appendChild(el("span", "pl", "📍 " + TRIP.place));
+  if (TRIP.addr){ const a = el("a", "", "🗺 " + TRIP.addr); a.href = "https://map.naver.com/p/search/" + encodeURIComponent(TRIP.addr); a.target = "_blank"; a.rel = "noopener"; pl.appendChild(wrapSpan(a)); }
+  if (TRIP.phone){ const a = el("a", "", "☎ " + TRIP.phone); a.href = "tel:" + TRIP.phone.replace(/[^\d+]/g, ""); pl.appendChild(wrapSpan(a)); }
+  pl.hidden = !pl.children.length;
+  const mb = $("#meBar");
+  mb.classList.toggle("need", !ME);
+  mb.innerHTML = "";
+  if (ME){ mb.append(el("span", "", "👤 나: " + teamName(ME))); mb.appendChild(el("span", "cg", "바꾸기 ›")); }
+  else { mb.append(el("span", "", "👤 누구세요?")); mb.appendChild(el("span", "cg", "이름을 골라주세요 ›")); }
+}
+function wrapSpan(a){ const s = el("span"); s.appendChild(a); return s; }
+
+/* ── 누구세요 — 이름(teams 의 한 줄) 하나 = 정산 하나. 없으면 ＋ 내 이름 ── */
+let meDone = null;
+function pickMe(){ return new Promise(res => { meDone = res; openModal("meModal"); }); }
+MODAL_OPEN.meModal = () => {
+  const box = $("#meChips"); box.innerHTML = "";
+  TEAMS().forEach(t => {
+    const c = btn("chip", t.name, () => { ME = t.id; ls("tr_me:" + PID, ME); closeModal("meModal"); renderAll(); });
+    c.setAttribute("aria-pressed", String(t.id === ME));
+    box.appendChild(c);
+  });
+  box.appendChild(btn("chip add", "＋ 내 이름 추가", async () => {
+    const v = await askText({ title: "이름", text: "부부·가족이면 ‘베니네’처럼 하나로 적어도 돼요", maxlength: 12, placeholder: "예: 베니" });
+    const nm = (v || "").trim(); if (!nm) return;
+    let t = TEAMS().find(x => x.name === nm);
+    if (!t){ t = { id: "t" + rid(6), name: nm, people: [nm], bank: "" }; await run(T().update({ teams: TEAMS().concat([t]), updatedAt: TSV() })); }
+    ME = t.id; ls("tr_me:" + PID, ME);
+    if (!$("#meModal").hidden) closeModal("meModal");
+    renderAll();
+  }));
+};
+MODAL_AFTER.meModal = () => { const r = meDone; meDone = null; if (r) afterBack(() => r(ME)); };
+$("#meBar").onclick = () => pickMe();
+
+/* ═══ 📢 공지 · 일정 ═══ */
+function tripDays(){
+  const s = TRIP.start, e = TRIP.end || s; if (!s) return [];
+  const out = []; for (let d = s, i = 0; d <= e && i < 31; d = addDays(d, 1), i++) out.push(d);
+  return out;
+}
+function renderInfo(){
+  /* 일정 — 날짜별 */
+  const box = $("#planList"); box.innerHTML = "";
+  const list = PLAN.slice().sort((a, b) => (a.date || "9999").localeCompare(b.date || "9999") || timeKey(a.time).localeCompare(timeKey(b.time)) || ms(a.at) - ms(b.at));
+  if (!list.length) box.appendChild(el("p", "hint", "아직 일정이 없어요. 집합·입실 시각, 끼니 메뉴, 담당을 한 줄씩 넣어 보세요."));
+  const t = todayIso(), days = tripDays();
+  let cur = null;
+  list.forEach(p => {
+    if (p.date !== cur){
+      cur = p.date;
+      const h = el("div", "pday" + (p.date && p.date < t ? " past" : ""));
+      const di = days.indexOf(p.date);
+      h.textContent = p.date ? fmtFull(p.date) + (di >= 0 ? " · " + (di + 1) + "일째" : "") : "날짜 미정";
+      if (p.date === t) h.appendChild(el("span", "td", "오늘"));
+      box.appendChild(h);
+    }
+    const r = btn("prl" + (p.place ? " hasplc" : ""), null, () => openPlan(p));
+    const tx = el("span", "px"); tx.appendChild(el("span", "", p.text));
+    const mp = myPeople();
+    if ((p.who && p.who.length) || p.memo){
+      const w = el("span", "pw");
+      (p.who || []).forEach(x => w.appendChild(el("span", "bd" + (mp.includes(x) ? " me" : ""), x)));
+      if (p.memo) w.appendChild(el("span", "pm", p.memo));
+      tx.appendChild(w);
+    }
+    r.append(el("span", "pt" + (SLOTS[p.time] ? " slot" : ""), p.time || "·"), tx);
+    box.appendChild(r);
+    /* 장소 — 줄 밑에 따로 (줄 전체는 고치기 버튼이라 링크를 안에 둘 수 없다) */
+    if (p.place){
+      const a = el("a", "plc", "📍 " + p.place.replace(/^https?:\/\/(www\.)?/, "").slice(0, 60));
+      a.href = /^https?:\/\//i.test(p.place) ? p.place : "https://map.naver.com/p/search/" + encodeURIComponent(p.place);
+      a.target = "_blank"; a.rel = "noopener";
+      box.appendChild(a);
+    }
+  });
+  /* 공지 카드 */
+  const nb = $("#noteList"); nb.innerHTML = "";
+  notesSorted().forEach(n => {
+    const c = el("div", "card ncard");
+    const h = el("div", "nh"); h.appendChild(el("h2", "", n.title || "공지"));
+    h.appendChild(btn("btn sm edbtn", "✎ 고치기", () => openNote(n)));
+    c.appendChild(h);
+    const body = el("div", "nb"); richText(body, n.body || ""); c.appendChild(body);
+    if ((n.body || "").split("\n").length > 7 || (n.body || "").length > 260){
+      body.classList.add("fold");
+      const m = btn("nmorebtn", "더 보기 ▾", () => { const f = body.classList.toggle("fold"); m.textContent = f ? "더 보기 ▾" : "접기 ▴"; });
+      c.appendChild(m);
+    }
+    nb.appendChild(c);
+  });
+}
+const notesSorted = () => NOTES.slice().sort((a, b) => (a.ord || 0) - (b.ord || 0) || ms(a.at) - ms(b.at));
+/** 글 안의 링크·전화번호를 누를 수 있게 (innerHTML 안 씀) */
+function richText(box, text){
+  const re = /(https?:\/\/[^\s]+)|(0\d{1,2}-\d{3,4}-\d{4})/g;
+  let i = 0, m;
+  while ((m = re.exec(text))){
+    if (m.index > i) box.appendChild(document.createTextNode(text.slice(i, m.index)));
+    const a = el("a", "", m[0]);
+    if (m[1]){ a.href = m[1]; a.target = "_blank"; a.rel = "noopener"; } else a.href = "tel:" + m[2].replace(/-/g, "");
+    box.appendChild(a); i = m.index + m[0].length;
+  }
+  if (i < text.length) box.appendChild(document.createTextNode(text.slice(i)));
+}
+/* 일정 한 줄 — 시간 자리에 끼니도 (정렬은 대략 그 시각으로) */
+const SLOTS = { "출발 전": "00:00", "아침": "08:00", "점심": "12:00", "저녁": "18:00", "밤": "21:00" };
+const timeKey = t => SLOTS[t] || t || "";
+let plEditing = null, plDate = "", plTime = "", plWho = [];
+function openPlan(p){
+  plEditing = p || null;
+  $("#planTitle").textContent = p ? "일정 고치기" : "일정 추가";
+  const days = tripDays(), t = todayIso();
+  plDate = p ? (p.date || "") : (days.includes(t) ? t : (days[0] || ""));
+  plTime = p ? p.time || "" : ""; plWho = p ? (p.who || []).slice() : [];
+  drawPlanDays();
+  $("#p_time").value = /^\d/.test(plTime) ? plTime : "";
+  $("#p_text").value = p ? p.text : "";
+  $("#p_memo").value = p ? p.memo || "" : "";
+  $("#p_place").value = p ? p.place || "" : "";
+  $("#p_del").hidden = !p;
+  openModal("planModal");
+  setTimeout(() => $("#p_text").focus(), 80);
+}
+function drawPlanDays(){
+  const box = $("#p_days"); box.innerHTML = "";
+  const days = tripDays();
+  if (plDate && !days.includes(plDate)) days.push(plDate);
+  days.concat([""]).forEach((d, i) => {
+    const c = btn("chip sm", d ? fmtFull(d) : "미정", () => { plDate = d; drawPlanDays(); });
+    c.setAttribute("aria-pressed", String(d === plDate)); box.appendChild(c);
+  });
+  const sb = $("#p_slots"); sb.innerHTML = "";
+  Object.keys(SLOTS).forEach(x => { const c = btn("chip sm", x, () => { plTime = plTime === x ? "" : x; $("#p_time").value = ""; drawPlanDays(); }); c.setAttribute("aria-pressed", String(plTime === x)); sb.appendChild(c); });
+  const wb = $("#p_who"); wb.innerHTML = "";
+  PEOPLE().concat(plWho.filter(x => !PEOPLE().includes(x))).forEach(x => { const c = btn("chip sm", x, () => { plWho = plWho.includes(x) ? plWho.filter(y => y !== x) : plWho.concat([x]); drawPlanDays(); }); c.setAttribute("aria-pressed", String(plWho.includes(x))); wb.appendChild(c); });
+  if (!PEOPLE().length) wb.appendChild(el("span", "hint", "‘누구세요’에서 이름을 넣으면 골라져요"));
+}
+$("#p_time").addEventListener("input", () => { plTime = $("#p_time").value.slice(0, 5); drawPlanDays(); });
+$("#planAdd").onclick = () => openPlan(null);
+$("#p_save").onclick = () => {
+  const text = $("#p_text").value.trim(), memo = $("#p_memo").value.trim();
+  if (!text){ setStatus("내용을 적어주세요", "err"); return; }
+  const place = $("#p_place").value.trim();
+  const p = plEditing, data = { date: plDate, time: plTime, text, who: plWho.slice(0, 12), memo, place, at: p ? (p.at || TSV()) : TSV() };
+  closeModal("planModal");
+  run(p ? T().collection("plan").doc(p.id).set(data) : T().collection("plan").add(data));
+};
+$("#p_text").addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing){ e.preventDefault(); $("#p_save").click(); } });
+$("#p_del").onclick = async () => {
+  const p = plEditing; if (!p) return;
+  closeModal("planModal");
+  afterBack(async () => { if (await ask({ title: "일정을 지울까요?", text: p.text, ok: "지우기", danger: true })) run(T().collection("plan").doc(p.id).delete(), "지웠어요"); });
+};
+/* 공지 카드 */
+let ntEditing = null;
+function openNote(n){
+  ntEditing = n || null;
+  $("#noteTitle").textContent = n ? "공지 고치기" : "공지 추가";
+  $("#o_title").value = n ? n.title || "" : "";
+  $("#o_body").value = n ? n.body || "" : "";
+  $("#o_tools").hidden = !n;
+  if (n){ const a = notesSorted(), i = a.findIndex(x => x.id === n.id); $("#o_up").disabled = i <= 0; $("#o_down").disabled = i >= a.length - 1; }
+  openModal("noteModal");
+  setTimeout(() => (n ? $("#o_body") : $("#o_title")).focus(), 80);
+}
+$("#noteAdd").onclick = () => openNote(null);
+$("#o_save").onclick = () => {
+  const title = $("#o_title").value.trim(), body = $("#o_body").value.replace(/\s+$/, "");
+  if (!title && !body){ setStatus("제목이나 내용을 적어주세요", "err"); return; }
+  const n = ntEditing;
+  const ord = n ? (n.ord || 0) : (NOTES.reduce((m, x) => Math.max(m, x.ord || 0), 0) + 1);
+  closeModal("noteModal");
+  run(n ? T().collection("notes").doc(n.id).update({ title, body, at: TSV() }) : T().collection("notes").add({ title, body, ord, at: TSV() }));
+};
+function moveNote(d){
+  const n = ntEditing; if (!n) return;
+  const a = notesSorted(), i = a.findIndex(x => x.id === n.id), j = i + d;
+  if (j < 0 || j >= a.length) return;
+  [a[i], a[j]] = [a[j], a[i]];
+  closeModal("noteModal");
+  const b = db.batch();
+  a.forEach((x, k) => { x.ord = k + 1; b.update(T().collection("notes").doc(x.id), { ord: k + 1 }); });
+  renderAll(); run(b.commit());
+}
+$("#o_up").onclick = () => moveNote(-1);
+$("#o_down").onclick = () => moveNote(1);
+$("#o_del").onclick = () => {
+  const n = ntEditing; if (!n) return;
+  closeModal("noteModal");
+  afterBack(async () => { if (await ask({ title: "공지를 지울까요?", text: n.title || "", ok: "지우기", danger: true })) run(T().collection("notes").doc(n.id).delete(), "지웠어요"); });
+};
+
+/* ═══ ✅ 준비물 — 버튼 하나, 세 단계 ═══
+   st[열쇠] = 0 아직 · 1 준비(짐 쌈) · 2 챙김(차에 실음). 누를 때마다 0 → 1 → 2 → 0
+   열쇠 = '각자' 준비물이면 팀 id(팀마다 따로), 아니면 "_"
+   📍 현장(현장에서 사거나 거기 있는 것)은 준비 단계가 없다 — 한 번에 챙김(확인) */
+function kindOf(it){ const w = it.who || []; if (w.includes("현장")) return "site"; if (w.includes("각자") && TEAMS().length) return "each"; return "one"; }
+const stOf = (it, k) => (it.st && +it.st[k]) || 0;
+/** 이 화면에서 셀 칸들 — 각자 준비물은 우리 팀을 골랐으면 우리 팀 것만, 아니면 팀마다 */
+function unitsOf(it){
+  if (kindOf(it) === "each") return (ME ? [ME] : TEAMS().map(t => t.id)).map(k => stOf(it, k));
+  return [stOf(it, "_")];
+}
+const taken = it => unitsOf(it).every(v => v >= 2);
+function isMine(it){
+  const w = it.who || [], p = myPeople().concat(ME ? [teamName(ME)] : []);
+  return w.includes("각자") || w.some(x => p.includes(x));
+}
+function catsOrdered(){
+  const order = (TRIP.cats || []).slice();
+  ITEMS.forEach(it => { if (!order.includes(it.cat || "기타")) order.push(it.cat || "기타"); });
+  return order;
+}
+function renderPack(){
+  /* 진행 — 준비(1 이상) · 챙김(2) 를 막대 하나에 */
+  let n = 0, n1 = 0, n2 = 0;
+  ITEMS.forEach(it => unitsOf(it).forEach(v => { n++; if (v >= 1) n1++; if (v >= 2) n2++; }));
+  $("#pgPrep").textContent = n1; $("#pgTake").textContent = n2; $("#pgTot").textContent = "전체 " + n;
+  $("#pgB2").style.width = (n ? n2 / n * 100 : 0) + "%";
+  $("#pgB1").style.width = (n ? (n1 - n2) / n * 100 : 0) + "%";
+  $("#fMine").hidden = !TEAMS().length;
+  const fm = FMINE && !!ME;
+  $("#fMine").setAttribute("aria-pressed", String(fm));
+  $("#fLeft").setAttribute("aria-pressed", String(FLEFT));
+  $("#fEdit").setAttribute("aria-pressed", String(PEDIT));
+  $("#editBar").hidden = !PEDIT;
+  /* 목록 */
+  const box = $("#packList"); box.innerHTML = "";
+  if (!ITEMS.length){ box.appendChild(el("div", "card empty", "아직 준비물이 없어요. ✎ 목록 고치기 → 📋 레퍼런스에서 가져오면 빨라요.")); return; }
+  catsOrdered().forEach(cat => {
+    const all = ITEMS.filter(it => (it.cat || "기타") === cat).sort((a, b) => (a.ord || 0) - (b.ord || 0));
+    if (!all.length) return;
+    let list = fm ? all.filter(isMine) : all;
+    const cnt = list.filter(taken).length, tot = list.length;
+    if (FLEFT) list = list.filter(it => !taken(it));
+    if (!list.length && (FLEFT ? !tot : true)) return;
+    const card = el("div", "card ilist");
+    const h = el("div", "ghead"); h.append(el("span", "", cat), el("small", "", (cnt === tot ? "✓ " : "") + "챙김 " + cnt + " / " + tot));
+    card.appendChild(h);
+    if (!list.length){ card.appendChild(el("div", "empty", "✓ 다 챙겼어요")); card.lastChild.style.padding = "10px"; }
+    list.forEach(it => card.appendChild(itemRow(it)));
+    box.appendChild(card);
+  });
+  if (!box.children.length) box.appendChild(el("div", "card empty", fm ? "내 준비물이 없어요." : "✓ 다 챙겼어요!"));
+}
+function itemRow(it){
+  const k = kindOf(it), units = unitsOf(it);
+  const lo = Math.min.apply(null, units), hi = Math.max.apply(null, units);
+  const r = el("div", "irow" + (lo >= 2 ? " done" : "") + (PEDIT ? " edit" : ""));
+  /* 줄 아무 데나 = 다음 단계 (고치기 모드면 수정 창) */
+  r.onclick = () => PEDIT ? openItem(it) : toggleCheck(it);
+  /* 동그라미 — 빈칸 · '준비' · ✓ 챙김. 팀마다 다르면(우리 팀을 안 고름) 손댄 팀 수 */
+  const mixed = units.length > 1 && lo !== hi;
+  const ck = el("span", "ck" + (lo >= 2 ? " on" : (lo >= 1 ? " prep" : (mixed ? " half" : ""))));
+  ck.textContent = lo >= 2 ? "✓" : (lo >= 1 ? "준비" : (mixed ? units.filter(v => v >= 1).length + "/" + units.length : ""));
+  ck.setAttribute("role", "checkbox");
+  ck.setAttribute("aria-checked", lo >= 2 ? "true" : (lo >= 1 || mixed ? "mixed" : "false"));
+  ck.setAttribute("aria-label", it.name + (lo >= 2 ? " 챙김" : lo >= 1 ? " 준비" : " 아직"));
+  if (!PEDIT) r.appendChild(ck);
+  const m = el("div", "imain");
+  m.appendChild(el("div", "inm", it.name));
+  const w = el("div", "iw"), p = myPeople();
+  /* '공통' 은 표시 안 함 — 대부분이 공통이라 줄마다 같은 글자만 늘었다 */
+  (it.who || []).filter(x => x !== "공통").forEach(x => w.appendChild(el("span", "bd" + (SPECIAL.includes(x) ? " sp" : "") + (p.includes(x) ? " me" : ""), SP_LABEL[x] || x)));
+  if (k === "each" && !ME && TEAMS().length) w.appendChild(el("span", "mm", "챙김 " + TEAMS().filter(t => stOf(it, t.id) >= 2).length + "/" + TEAMS().length + "명"));
+  if (it.memo) w.appendChild(el("span", "mm", it.memo));
+  if (w.children.length) m.appendChild(w);
+  r.appendChild(m);
+  if (PEDIT) r.appendChild(el("span", "ist", "✎"));
+  return r;
+}
+async function toggleCheck(it){
+  const k = kindOf(it);
+  let key = "_";
+  if (k === "each"){
+    if (!ME){ await pickMe(); if (!ME) return; }
+    key = ME;
+  }
+  const v = stOf(it, key);
+  const nv = k === "site" ? (v >= 2 ? 0 : 2) : (v + 1) % 3;      // 0 → 1 준비 → 2 챙김 → 0
+  it.st = Object.assign({}, it.st || {}, { [key]: nv });          // 바로 보이게
+  renderAll();
+  run(T().collection("items").doc(it.id).update({ ["st." + key]: nv }));
+}
+$("#fMine").onclick = async () => {
+  if (!FMINE && !ME){ await pickMe(); if (!ME) return; }
+  FMINE = !(FMINE && !!ME); ls("tr_fmine", FMINE ? "1" : ""); renderAll();
+};
+$("#fEdit").onclick = () => { PEDIT = !PEDIT; renderAll(); };
+$("#fLeft").onclick = () => { FLEFT = !FLEFT; ls("tr_fleft", FLEFT ? "1" : ""); renderAll(); };
+
+/* 준비물 추가·수정 */
+let itEditing = null, itCat = "", itWho = [];
+function openItem(it){
+  itEditing = it || null;
+  $("#itemTitle").textContent = it ? "준비물 고치기" : "준비물 추가";
+  $("#i_name").value = it ? it.name : "";
+  $("#i_memo").value = it ? it.memo || "" : "";
+  $("#i_bulk").value = ""; $("#i_bulkWrap").open = false; $("#i_bulkWrap").hidden = !!it;
+  if (it){ itCat = it.cat || "기타"; itWho = (it.who || []).slice(); }
+  else if (!itCat) itCat = catsOrdered()[0] || "기본 준비물";
+  $("#i_more").hidden = !!it; $("#i_del").hidden = !it;
+  drawItemChips();
+  openModal("itemModal");
+  if (!it) setTimeout(() => $("#i_name").focus(), 80);
+}
+function drawItemChips(){
+  const cb = $("#i_cats"); cb.innerHTML = "";
+  const cats = TRIP ? catsOrdered() : [];
+  if (itCat && !cats.includes(itCat)) cats.push(itCat);
+  cats.forEach(c => { const b = btn("chip sm", c, () => { itCat = c; drawItemChips(); }); b.setAttribute("aria-pressed", String(c === itCat)); cb.appendChild(b); });
+  cb.appendChild(btn("chip sm add", "＋ 새 분류", async () => {
+    const v = await askText({ title: "새 분류 이름", maxlength: 20, placeholder: "예: 아이 물건" });
+    if (v && v.trim()){ itCat = v.trim(); drawItemChips(); }
+  }));
+  const wb = $("#i_who"); wb.innerHTML = "";
+  PEOPLE().concat(SPECIAL).forEach(x => {
+    const b = btn("chip sm" + (SPECIAL.includes(x) ? " spc" : ""), SP_LABEL[x] || x, () => {
+      itWho = itWho.includes(x) ? itWho.filter(y => y !== x) : itWho.concat([x]); drawItemChips();
+    });
+    b.setAttribute("aria-pressed", String(itWho.includes(x))); wb.appendChild(b);
+  });
+}
+async function saveItem(more){
+  const it = itEditing, memo = $("#i_memo").value.trim(), cat = itCat || "기타";
+  const first = $("#i_name").value.trim();
+  const names = it ? [first] : [first].concat($("#i_bulk").value.split("\n").map(s => s.split("\t")[0].trim())).filter(Boolean);
+  if (!names.length || (it && !first)){ setStatus("이름을 적어주세요", "err"); return; }
+  const who = PEOPLE().concat(SPECIAL).filter(x => itWho.includes(x)).concat(itWho.filter(x => !PEOPLE().includes(x) && !SPECIAL.includes(x)));
+  const needCat = !(TRIP.cats || []).includes(cat);
+  if (more){ $("#i_name").value = ""; $("#i_memo").value = ""; $("#i_bulk").value = ""; $("#i_name").focus(); }
+  else closeModal("itemModal");
+  const b = db.batch();
+  if (it) b.update(T().collection("items").doc(it.id), { name: names[0], cat, who, memo });
+  else {
+    let ord = ITEMS.reduce((m, x) => Math.max(m, x.ord || 0), 0);
+    names.slice(0, 200).forEach(name => b.set(T().collection("items").doc(), { cat, name: name.slice(0, 60), who, memo, ord: ++ord, st: {}, at: TSV() }));
+  }
+  if (needCat) b.update(T(), { cats: firebase.firestore.FieldValue.arrayUnion(cat), updatedAt: TSV() });
+  run(b.commit(), it ? "" : (names.length > 1 ? names.length + "개 넣었어요" : ""));
+}
+$("#itemAdd").onclick = () => openItem(null);
+$("#i_save").onclick = () => saveItem(false);
+$("#i_more").onclick = () => saveItem(true);
+["#i_name", "#i_memo"].forEach(s => $(s).addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing){ e.preventDefault(); saveItem(!itEditing); } }));
+$("#i_del").onclick = () => {
+  const it = itEditing; if (!it) return;
+  closeModal("itemModal");
+  afterBack(async () => { if (await ask({ title: "준비물을 지울까요?", text: it.name, ok: "지우기", danger: true })) run(T().collection("items").doc(it.id).delete(), "지웠어요"); });
+};
+
+/* ═══ 💰 정산 ═══
+   지출 하나 = 낸 팀(payer) + 나누는 몫(split {팀: 몫}). 몫 비율대로 원 단위로 나누고 남는 원은 큰 소수점부터.
+   송금 기록(kind pay) = 보낸 팀이 '낸' 돈, 받은 팀의 몫 1 → 잔액이 0 으로 맞춰진다 */
+function sharesOf(amt, split){
+  const ks = Object.keys(split || {}).filter(k => +split[k] > 0);
+  const W = ks.reduce((s, k) => s + +split[k], 0);
+  const out = {}; if (!W) return out;
+  let left = amt;
+  /* 정수로만 — 소수점 오차로 동점이 엇갈리지 않게 (r = 나머지) */
+  const parts = ks.map(k => { const n = amt * split[k], f = Math.floor(n / W); left -= f; out[k] = f; return { k, r: n % W }; });
+  /* 동점이면 팀 순서대로 — 저장소가 돌려주는 맵 순서가 그때그때 달라 새로고침마다 1원씩 바뀌었다 (2026-10-09) */
+  const ord = TEAMS().map(t => t.id), oi = k => { const i = ord.indexOf(k); return i < 0 ? 99 : i; };
+  parts.sort((a, b) => (b.r - a.r) || (oi(a.k) - oi(b.k)) || (a.k < b.k ? -1 : 1)).slice(0, left).forEach(p => out[p.k]++);
+  return out;
+}
+/** 팀마다 spent 쓴 돈 · share 부담(몫) · sent 보낸 송금 · recv 받은 송금 → bal = + 받을 돈 / − 보낼 돈 */
+function balances(){
+  const z = () => ({ spent: 0, share: 0, sent: 0, recv: 0 });
+  const b = {}; TEAMS().forEach(t => b[t.id] = z());
+  const g = k => b[k] || (b[k] = z());
+  MONEY.forEach(m => {
+    const amt = +m.amt || 0;
+    if (m.kind === "pay"){ g(m.payer).sent += amt; const to = Object.keys(m.split || {})[0]; if (to) g(to).recv += amt; return; }
+    g(m.payer).spent += amt;
+    /* 몫은 소수 그대로 더하고 맨 끝에 한 번만 반올림 — 지출마다 1원씩 반올림하면 몇 원씩 쌓여 시트와 달랐다 (2026-10-09) */
+    const ks = Object.keys(m.split || {}).filter(k => +m.split[k] > 0), W = ks.reduce((s, k) => s + +m.split[k], 0);
+    ks.forEach(k => g(k).share += amt * m.split[k] / W);
+  });
+  let sum = 0, big = null;
+  for (const k in b){
+    b[k].bal = Math.round(b[k].spent + b[k].sent - b[k].share - b[k].recv);
+    b[k].share = Math.round(b[k].share);
+    sum += b[k].bal;
+    if (!big || Math.abs(b[k].bal) > Math.abs(b[big].bal)) big = k;
+  }
+  if (sum && big) b[big].bal -= sum;      // 반올림으로 생긴 ±1원은 제일 큰 쪽이 맡아 합계 0
+  return b;
+}
+function transfers(b){
+  const cr = [], dr = [];
+  for (const k in b){ if (b[k].bal > 0) cr.push({ k, v: b[k].bal }); else if (b[k].bal < 0) dr.push({ k, v: -b[k].bal }); }
+  cr.sort((a, z) => z.v - a.v); dr.sort((a, z) => z.v - a.v);
+  const out = []; let i = 0, j = 0;
+  while (i < dr.length && j < cr.length){
+    const v = Math.min(dr[i].v, cr[j].v);
+    if (v > 0) out.push({ from: dr[i].k, to: cr[j].k, amt: v });
+    dr[i].v -= v; cr[j].v -= v;
+    if (!dr[i].v) i++; if (!cr[j].v) j++;
+  }
+  return out;
+}
+const expTotal = () => MONEY.filter(m => m.kind !== "pay").reduce((s, m) => s + (+m.amt || 0), 0);
+function splitText(split){
+  const ks = Object.keys(split || {}).filter(k => +split[k] > 0);
+  const ids = TEAMS().map(t => t.id);
+  const eq = ks.length === ids.length && ids.every(k => +split[k] === +split[ids[0]]);
+  if (eq) return ids.length > 1 ? "다 같이" : "";
+  return ks.map(k => teamName(k) + (+split[k] !== 1 ? " " + split[k] : "")).join(" · ");
+}
+function renderMoney(){
+  const b = balances(), xs = transfers(b), tot = expTotal();
+  /* 요약 */
+  const sm = $("#mSum"); sm.innerHTML = "";
+  const top = el("div", "spread");
+  const l = el("div"); l.append(el("div", "hint", "총 지출 · " + MONEY.filter(m => m.kind !== "pay").length + "건"), el("div", "big", won(tot)));
+  l.firstChild.style.margin = "0";
+  top.appendChild(l);
+  top.appendChild(btn("btn soft sm", "📋 정산 공지", copySettle));
+  sm.appendChild(top);
+  if (TEAMS().length){
+    const tb = el("table", "mtab");
+    const hr = el("tr"); ["누구", "쓴 돈", "부담", "받을/보낼"].forEach(x => hr.appendChild(el("th", "", x)));
+    tb.appendChild(hr);
+    Object.keys(b).forEach(k => {
+      const x = b[k], tr = el("tr", (k === ME ? "me" : "") + (k === MFILTER ? " on" : ""));
+      tr.onclick = () => { MFILTER = MFILTER === k ? "" : k; renderAll(); };     // 팀 줄 = 그 팀 지출만 (칩 줄 대신)
+      tr.append(el("td", "", teamName(k)), el("td", "", x.spent.toLocaleString("ko-KR")), el("td", "", x.share.toLocaleString("ko-KR")));
+      const net = x.bal;            // 송금 기록까지 반영한 남은 차액
+      tr.appendChild(el("td", net > 0 ? "p" : (net < 0 ? "m" : ""), net > 0 ? "+" + net.toLocaleString("ko-KR") : (net < 0 ? net.toLocaleString("ko-KR") : "✓")));
+      tb.appendChild(tr);
+    });
+    sm.appendChild(tb);
+  } else sm.appendChild(el("p", "hint", "위의 ‘누구세요’에서 이름을 넣으면 사람끼리 나눠요."));
+  /* 보낼 돈 */
+  const xb = $("#mXfer"); xb.innerHTML = "";
+  xb.appendChild(el("h2", "", "💸 보낼 돈"));
+  if (!xs.length) xb.appendChild(el("p", "hint", tot ? "✓ 정산 끝 — 보낼 돈이 없어요." : "지출을 적으면 누가 누구에게 얼마 보낼지 여기에 나와요."));
+  xs.forEach(x => {
+    const r = el("div", "xfer" + (x.from === ME || x.to === ME ? " mine" : ""));
+    const t = el("div", "xt");
+    t.appendChild(el("b", "", teamName(x.from) + " → " + teamName(x.to)));
+    t.appendChild(el("span", "amt", won(x.amt)));
+    const to = teamOf(x.to);
+    if (to && to.bank) t.appendChild(el("small", "", "받는 계좌: " + to.bank));
+    r.appendChild(t);
+    if (to && to.bank) r.appendChild(btn("btn sm", "계좌 복사", () => copyText(to.bank.replace(/^\s*/, ""), "계좌 복사됨")));
+    r.appendChild(btn("btn primary sm", "보냈어요", () => markSent(x)));
+    xb.appendChild(r);
+  });
+  if (MFILTER && !teamOf(MFILTER)) MFILTER = "";
+  /* 지출 목록 — 최근 것 위 */
+  const box = $("#mList"); box.innerHTML = "";
+  const list = MONEY.filter(m => !MFILTER || m.payer === MFILTER || (m.kind === "pay" && m.split && m.split[MFILTER])).sort((a, z) => ms(z.at) - ms(a.at));
+  if (!list.length){ box.appendChild(el("div", "card empty", MONEY.length ? "이 사람이 낸 지출이 없어요." : "아직 지출이 없어요. 산 건 바로 ＋ 지출 적기로!")); return; }
+  const card = el("div", "card ilist");
+  if (MFILTER){ const s = list.filter(m => m.kind !== "pay").reduce((a, m) => a + (+m.amt || 0), 0); const h = el("div", "ghead"); h.append(el("span", "", teamName(MFILTER) + " 지출 " + won(s)), btn("btn ghost sm", "✕ 전체 보기", () => { MFILTER = ""; renderAll(); })); h.style.alignItems = "center"; h.style.paddingTop = "4px"; h.style.paddingBottom = "4px"; card.appendChild(h); }
+  list.forEach(m => {
+    const pay = m.kind === "pay";
+    const r = btn("mrow" + (pay ? " pay" : ""), null, () => pay ? delPay(m) : openExp(m));
+    const t = el("div", "mt");
+    if (pay){ const to = Object.keys(m.split || {})[0]; t.append(el("b", "", "💸 송금 " + teamName(m.payer) + " → " + teamName(to))); }
+    else t.appendChild(el("b", "", m.title || "지출"));
+    const sub = [];
+    if (!pay) sub.push(teamName(m.payer) + " 냄");
+    if (!pay){ const st = splitText(m.split); if (st && st !== "다 같이") sub.push("나눔: " + st); }
+    if (m.memo) sub.push(m.memo);
+    if (m.at && m.at.toDate) sub.push(fmtEdit(stampOf(m.at)));
+    t.appendChild(el("small", "", sub.join(" · ")));
+    r.append(t, el("span", "ma", won(m.amt)));
+    card.appendChild(r);
+  });
+  box.appendChild(card);
+}
+async function copyText(t, msg){
+  try { await navigator.clipboard.writeText(t); setStatus(msg || "복사했어요", "ok"); }
+  catch(e){ askText({ title: "길게 눌러 복사하세요", value: t, readonly: true, ok: "닫기", noCancel: true }); }
+}
+async function markSent(x){
+  if (!await ask({ title: "보낸 걸로 기록할까요?", text: teamName(x.from) + " → " + teamName(x.to) + "\n" + won(x.amt) + "\n\n기록하면 보낼 돈에서 빠져요. 지출 목록에서 누르면 취소돼요.", ok: "보냈어요" })) return;
+  run(T().collection("money").add({ kind: "pay", title: "송금", amt: x.amt, payer: x.from, split: { [x.to]: 1 }, memo: "", at: TSV() }), "기록했어요 💸");
+}
+async function delPay(m){
+  const to = Object.keys(m.split || {})[0];
+  if (!await ask({ title: "송금 기록을 지울까요?", text: teamName(m.payer) + " → " + teamName(to) + " " + won(m.amt) + "\n지우면 다시 보낼 돈에 나와요.", ok: "지우기", danger: true })) return;
+  run(T().collection("money").doc(m.id).delete(), "지웠어요");
+}
+/** 단톡방에 붙여넣을 정산 공지 */
+function copySettle(){
+  const b = balances(), xs = transfers(b), tot = expTotal();
+  const L = ["[" + TRIP.name + " 정산]", "총 지출 " + won(tot) + " (" + MONEY.filter(m => m.kind !== "pay").length + "건)"];
+  TEAMS().forEach(t => { const x = b[t.id]; if (x) L.push("· " + t.name + " — 쓴 돈 " + won(x.spent) + " / 부담 " + won(x.share)); });
+  L.push("");
+  if (xs.length){ L.push("💸 보낼 돈"); xs.forEach(x => { const to = teamOf(x.to); L.push("· " + teamName(x.from) + " → " + teamName(x.to) + " " + won(x.amt) + (to && to.bank ? "  (" + to.bank + ")" : "")); }); }
+  else L.push("✓ 정산 끝");
+  L.push("", "자세히: " + linkOf());
+  shareLine(L.join("\n"), "정산 공지 복사됨 — 단톡방에 붙여넣으세요");
+}
+/* 지출 적기 */
+let exEditing = null, exPayer = "", exSplit = {};
+function openExp(m){
+  exEditing = m || null;
+  $("#expTitle").textContent = m ? "지출 고치기" : "지출 적기";
+  $("#e_amt").value = m ? (+m.amt).toLocaleString("ko-KR") : "";
+  $("#e_title").value = m ? m.title || "" : "";
+  $("#e_memo").value = m ? m.memo || "" : "";
+  exPayer = m ? m.payer : (ME || (TEAMS().length === 1 ? TEAMS()[0].id : ""));
+  exSplit = m ? Object.assign({}, m.split) : eqSplit();
+  $("#e_del").hidden = !m;
+  drawExp();
+  $("#e_opt").open = !!m && (splitText(exSplit) !== "다 같이" || !!m.memo);
+  openModal("expModal");
+  if (!m) setTimeout(() => $("#e_amt").focus(), 80);
+}
+const eqSplit = () => { const o = {}; TEAMS().forEach(t => o[t.id] = 1); return o; };
+function amtVal(){ return parseInt(($("#e_amt").value || "").replace(/[^\d]/g, ""), 10) || 0; }
+function drawExp(){
+  const pb = $("#e_payer"); pb.innerHTML = "";
+  TEAMS().forEach(t => { const c = btn("chip", t.name, () => { exPayer = t.id; drawExp(); }); c.setAttribute("aria-pressed", String(exPayer === t.id)); pb.appendChild(c); });
+  if (!TEAMS().length) pb.appendChild(el("p", "hint", "‘누구세요’에서 이름을 먼저 넣어주세요."));
+  const stx = splitText(exSplit);
+  $("#e_optSum").textContent = stx === "다 같이" ? "다 같이 똑같이" : stx;
+  const sb = $("#e_split"); sb.innerHTML = "";
+  const sh = sharesOf(amtVal(), exSplit);
+  TEAMS().forEach(t => {
+    const n = +exSplit[t.id] || 0;
+    const r = el("div", "splitrow" + (n ? "" : " off"));
+    const nm = el("div", "sn", t.name);
+    const st = el("span", "step");
+    st.append(btn("", "−", () => { exSplit[t.id] = Math.max(0, n - 1); drawExp(); }), el("span", "", String(n)), btn("", "+", () => { exSplit[t.id] = Math.min(20, n + 1); drawExp(); }));
+    r.append(nm, el("span", "sh", n ? won(sh[t.id] || 0) : "빠짐"), st);
+    sb.appendChild(r);
+  });
+}
+$("#e_amt").addEventListener("input", () => {
+  const v = amtVal(); $("#e_amt").value = v ? v.toLocaleString("ko-KR") : ""; drawExp();
+});
+$("#e_eq").onclick = () => { exSplit = eqSplit(); drawExp(); };
+function saveExp(){
+  const amt = amtVal(), title = $("#e_title").value.trim(), memo = $("#e_memo").value.trim();
+  if (!amt){ setStatus("금액을 적어주세요", "err"); return; }
+  if (!exPayer){ setStatus("누가 냈는지 골라주세요", "err"); return; }
+  const split = {}; for (const k in exSplit) if (+exSplit[k] > 0) split[k] = +exSplit[k];
+  if (!Object.keys(split).length){ setStatus("나눌 사람을 하나 이상 남겨주세요", "err"); return; }
+  const m = exEditing, data = { kind: "exp", title: title || "지출", amt, payer: exPayer, split, memo };
+  closeModal("expModal");
+  run(m ? T().collection("money").doc(m.id).update(data) : T().collection("money").add(Object.assign(data, { at: TSV() })));
+}
+$("#expAdd").onclick = async () => { if (!ME){ await pickMe(); } openExp(null); };
+$("#e_save").onclick = () => saveExp();
+["#e_amt", "#e_title", "#e_memo"].forEach(s => $(s).addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing){ e.preventDefault(); if (s === "#e_amt") $("#e_title").focus(); else saveExp(); } }));
+$("#e_del").onclick = () => {
+  const m = exEditing; if (!m) return;
+  closeModal("expModal");
+  afterBack(async () => { if (await ask({ title: "지출을 지울까요?", text: (m.title || "지출") + " " + won(m.amt), ok: "지우기", danger: true })) run(T().collection("money").doc(m.id).delete(), "지웠어요"); });
+};
+
+/* ═══ 사람 줄 (설정) — 이름 · 받는 계좌. 저장소에선 옛 이름 그대로 teams ═══ */
+function teamRows(box, teams){
+  box.innerHTML = "";
+  teams.forEach(t => addTeamRow(box, t));
+}
+function addTeamRow(box, t){
+  const r = el("div", "teamrow"); r.dataset.id = (t && t.id) || ("t" + rid(6));
+  const row = el("div", "row nowrap");
+  const n = el("input", "tn"); n.type = "text"; n.maxLength = 12; n.placeholder = "이름 (예: 베니)"; n.value = (t && t.name) || "";
+  const x = btn("btn x", "✕", () => r.remove()); x.setAttribute("aria-label", "빼기");
+  row.append(n, x); r.appendChild(row);
+  const bk = el("input", "tb"); bk.type = "text"; bk.maxLength = 60; bk.placeholder = "받는 계좌 (선택)"; bk.value = (t && t.bank) || ""; r.appendChild(bk);
+  box.appendChild(r);
+}
+function readTeams(box){
+  return $$("#" + box.id + " .teamrow").map(r => {
+    const id = r.dataset.id, name = r.querySelector(".tn").value.trim(), old = teamOf(id);
+    /* 이름이 그대로면 옛 people(한 이름 안에 나뉜 사람들 = 담당 칩)을 둔다 */
+    const people = old && old.name === name && old.people && old.people.length ? old.people : [name];
+    return { id, name, people, bank: r.querySelector(".tb").value.trim() };
+  }).filter(t => t.name);
+}
+const namesToTeams = txt => Array.from(new Set(splitList(txt).map(x => x.slice(0, 12)))).slice(0, 12).map(n => ({ id: "t" + rid(6), name: n, people: [n], bank: "" }));
+
+/* ═══ 레퍼런스 — 짐 싸기 기본 목록 3개 + 지난 여행 ═══
+   (2026-10-09 Benny: "이전 여행도 레퍼런스로, 국내·해외·캠핑 짐 싸기 레퍼런스")
+   캠핑 = 캠핑808 시트 목록을 일반화 + 오토캠핑 입문 목록(그라운드시트·우비 등). 국내·해외 = 여행 준비물 체크리스트들 참고해 판단.
+   한 줄 "이름|누가|메모" — 누가: 공=공통 · 각=각자(팀마다) · 마=마트 · 현=현장 */
+const TEMPLATES = {
+  camp: { name: "⛺ 캠핑", cats: {
+    "기본 준비물": ["텐트|공", "그라운드시트|공|텐트 밑에 까는 방수포", "타프|각", "타프폴대|각", "데크 팩·망치|각", "카라비너|각", "에어매트|공", "공기주입기|공",
+      "침낭|각", "담요/이불|공", "베개|공", "전기장판|공|사이트 전기 용량 확인", "테이블|공", "의자|공", "화로대|공", "토치|공", "장작·숯|공",
+      "아이스박스|공", "아이스팩|각", "보냉백|각", "워터저그|공", "쓰레기봉투|각", "모기향|공", "우비·방수포|공|비 대비"],
+    "취사": ["버너|공", "부탄가스|현|현장·마트에서", "그리들·코펠|공", "가위|공", "집게|공", "칼·도마|공", "밧드|공", "수저·컵|공", "텀블러|각",
+      "키친타올|공", "지퍼백·비닐봉지|공", "호일|공", "수세미·세제|현|캠핑장에 있는지 확인", "종이그릇|마", "일회용 수저|마"],
+    "기타": ["랜턴|각", "헤드랜턴|각", "멀티탭|각", "릴선(15m)|각|전기 사이트", "보조배터리|각", "물티슈|각", "휴지|공", "상비약|각", "세면도구|각",
+      "개인 수건|각", "따뜻한 옷|각|밤엔 추워요", "핫팩|각", "우산|각", "목장갑|공", "다용도 비닐|공", "박스 테이프|공", "서큘레이터·선풍기|각", "스피커|각"],
+    "식자재": ["생수|마", "얼음|마", "식용유|마", "소금·후추|공", "버터|마", "라면|마", "커피|공", "주류|마"]
+  } },
+  dom: { name: "🚗 국내 여행", cats: {
+    "서류·돈": ["신분증|각", "카드·현금|각", "숙소 예약 확인|공", "차 키·하이패스|공"],
+    "옷": ["갈아입을 옷|각|일수만큼", "속옷·양말|각|여유 있게", "잠옷|각", "겉옷·바람막이|각", "편한 신발|각", "슬리퍼|각", "수영복|각|물놀이 갈 때", "모자·선글라스|각"],
+    "세면·화장": ["칫솔·치약|각", "세안제|각", "샴푸·린스(소용량)|각", "스킨·로션|각", "선크림|각", "화장품|각", "면도기|각", "빗·머리끈|각", "렌즈·렌즈액|각", "수건|각|숙소에 없을 때"],
+    "전자기기": ["휴대폰 충전기|각", "보조배터리|각", "차량용 충전기|공", "멀티탭|공", "이어폰|각", "카메라|공"],
+    "건강": ["상비약|공|진통·소화·감기·밴드", "개인 복용약|각", "마스크|각"],
+    "기타": ["물티슈|공", "휴지|공", "비닐봉지·지퍼백|공|빨래·쓰레기", "우산·우비|각", "텀블러|각", "간식·물|마", "보조가방|각"]
+  } },
+  abroad: { name: "✈️ 해외 여행", cats: {
+    "서류·돈": ["여권|각|유효기간 6개월 이상", "여권 사본·사진|각|분실 대비", "항공권(e티켓)|공", "숙소 바우처|공", "입국 서류(비자·ESTA 등)|각|나라별 확인",
+      "여행자 보험|각", "해외결제 카드·트래블카드|각", "현지 현금|공", "국제운전면허증|각|운전할 때"],
+    "통신·전자": ["eSIM·유심·포켓와이파이|각", "멀티 어댑터(돼지코)|공", "휴대폰 충전기|각", "보조배터리|각|위탁 수하물 금지 — 기내로", "멀티탭|공", "이어폰|각"],
+    "옷": ["갈아입을 옷|각|일수만큼", "속옷·양말|각", "잠옷|각", "겉옷|각|기내·밤 대비", "편한 신발|각", "슬리퍼|각", "수영복|각", "모자·선글라스|각"],
+    "세면·화장": ["칫솔·치약|각", "세안제|각", "샴푸·린스(소용량)|각", "스킨·로션|각", "선크림|각", "화장품|각", "면도기|각", "렌즈·렌즈액|각", "액체류 지퍼백|각|기내 100ml 이하"],
+    "건강": ["상비약|공|진통·소화·지사제·밴드", "개인 복용약|각|영문 처방전 있으면 좋아요", "마스크|각"],
+    "기내": ["목베개|각", "안대·귀마개|각", "볼펜|각|입국신고서"],
+    "기타": ["캐리어 자물쇠·네임택|각", "접이식 보조가방|각|쇼핑 대비", "물티슈|공", "지퍼백·비닐|공", "우산|각"]
+  } }
+};
+const WHO_CODE = { "공": "공통", "각": "각자", "마": "마트", "현": "현장" };
+function tplItems(id){
+  const t = TEMPLATES[id]; if (!t) return [];
+  const out = [];
+  for (const cat in t.cats) t.cats[cat].forEach(line => { const [name, w, memo] = line.split("|"); out.push({ cat, name, who: [WHO_CODE[w] || "공통"], memo: memo || "" }); });
+  return out;
+}
+/** 레퍼런스 고르기 목록 — 기본 3개 + 이 기기에서 연 지난 여행 (지금 여행은 빼고) */
+function refSources(){
+  return Object.keys(TEMPLATES).map(id => ({ id, name: TEMPLATES[id].name }))
+    .concat(mine().filter(m => m.id !== PID).map(m => ({ id: "t:" + m.id, name: "📋 " + m.name })));
+}
+/** 레퍼런스의 준비물 — 지난 여행은 이 기기의 열쇠(또는 빈 PIN)로 읽는다. 사람 이름은 받을 쪽 팀에 있는 이름만 남긴다 */
+async function loadRef(id, teams){
+  if (!id) return [];
+  if (!id.startsWith("t:")) return tplItems(id);
+  const pid = id.slice(2);
+  let k = ls("tr_key:" + pid) || await keyOf(pid, "");
+  const s = await C("trips").doc(k).collection("items").get().catch(() => null);
+  if (!s) return null;
+  const ppl = (teams || []).flatMap(t => (t.people && t.people.length) ? t.people.concat([t.name]) : [t.name]);
+  return s.docs.map(d => d.data()).sort((a, b) => (a.ord || 0) - (b.ord || 0))
+    .map(x => { const who = (x.who || []).filter(w => SPECIAL.includes(w) || ppl.includes(w)); return { cat: x.cat || "기타", name: x.name, who: who.length ? who : ["공통"], memo: x.memo || "" }; });
+}
+
+/* ═══ 새 여행 ═══ */
+let nTpl = "";
+MODAL_OPEN.newModal = () => {
+  $("#n_name").value = ""; $("#n_start").value = ""; $("#n_end").value = ""; $("#n_pin").value = ""; syncDateBtn("n");
+  $("#n_people").value = "";
+  nTpl = "camp"; drawTpl();
+  setTimeout(() => $("#n_name").focus(), 80);
+};
+function drawTpl(){
+  const box = $("#n_tpl"); box.innerHTML = "";
+  [{ id: "", name: "비우기" }].concat(refSources()).forEach(o => {
+    const c = btn("chip sm", o.name, () => { nTpl = o.id; drawTpl(); }); c.setAttribute("aria-pressed", String(nTpl === o.id)); box.appendChild(c);
+  });
+}
+$("#n_make").onclick = async () => {
+  const name = $("#n_name").value.trim(), start = $("#n_start").value, end = $("#n_end").value || start, pin = $("#n_pin").value.trim();
+  if (!name){ setStatus("여행 이름을 적어주세요", "err"); return; }
+  if (start && end < start){ setStatus("끝나는 날이 시작보다 앞이에요", "err"); return; }
+  if (pin && !pinOk(pin)){ setStatus("PIN 은 숫자 4~8자리예요", "err"); return; }
+  const teams = namesToTeams($("#n_people").value);
+  $("#n_make").disabled = true;
+  try {
+    const items = (await loadRef(nTpl, teams)) || [];
+    const cats = []; items.forEach(x => { if (!cats.includes(x.cat)) cats.push(x.cat); });
+    const pid = rid(20), k = await keyOf(pid, pin);
+    const b0 = db.batch();
+    b0.set(C("tripIdx").doc(pid), { name, locked: !!pin, start: start || "", createdAt: TSV(), updatedAt: TSV() });
+    b0.set(C("trips").doc(k), { pid, name, start, end, place: "", addr: "", phone: "", teams, cats, createdAt: TSV(), updatedAt: TSV() });
+    await b0.commit();
+    for (let i = 0; i < items.length; i += 100){
+      const b = db.batch();
+      items.slice(i, i + 100).forEach((x, j) => b.set(C("trips").doc(k).collection("items").doc(), Object.assign({}, x, { ord: i + j + 1, st: {}, at: TSV() })));
+      await b.commit();
+    }
+    ls("tr_key:" + pid, k); mineAdd(pid, name, start);
+    closeModal("newModal");
+    afterBack(() => { TAB = "info"; ls("tr_tab", TAB); openTrip(pid); setStatus("만들었어요! 🔗 단톡방에 공유로 링크를 보내세요" + (pin ? " (PIN 은 따로)" : ""), "ok"); });
+  } catch(e){ setStatus("실패 — " + errText(e), "err"); }
+  finally { $("#n_make").disabled = false; }
+};
+
+/* ═══ 지금 여행에 레퍼런스에서 가져오기 — 이미 있는 이름은 빼고, 골라서 ═══ */
+let rfSrc = "", rfItems = [];
+MODAL_OPEN.refModal = () => { rfSrc = ""; rfItems = []; drawRef(); };
+$("#refBtn").onclick = () => openModal("refModal");
+async function pickRef(id){
+  rfSrc = id; rfItems = []; drawRef();
+  $("#r_hint").textContent = "불러오는 중…";
+  const a = await loadRef(id, TEAMS());
+  if (rfSrc !== id) return;
+  if (!a || !a.length){ $("#r_hint").textContent = "가져올 준비물이 없어요. PIN 걸린 여행은 이 기기에서 한 번 열어야 가져올 수 있어요."; return; }
+  const have = new Set(ITEMS.map(x => x.name.replace(/\s/g, "")));
+  rfItems = a.map(x => Object.assign(x, { have: have.has(x.name.replace(/\s/g, "")) })).map(x => Object.assign(x, { sel: !x.have }));
+  drawRef();
+}
+function drawRef(){
+  const sb = $("#r_src"); sb.innerHTML = "";
+  refSources().forEach(o => { const c = btn("chip sm", o.name, () => pickRef(o.id)); c.setAttribute("aria-pressed", String(rfSrc === o.id)); sb.appendChild(c); });
+  const box = $("#r_list"); box.innerHTML = "";
+  const n = rfItems.filter(x => x.sel).length;
+  $("#r_go").textContent = n ? n + "개 가져오기" : "가져오기"; $("#r_go").disabled = !n;
+  if (!rfSrc){ $("#r_hint").textContent = "어디서 가져올까요? 이미 있는 건 빼고 보여줘요."; return; }
+  if (!rfItems.length) return;
+  $("#r_hint").textContent = "체크된 것만 가져와요 · 회색 = 이미 있음";
+  const cats = []; rfItems.forEach(x => { if (!cats.includes(x.cat)) cats.push(x.cat); });
+  cats.forEach(cat => {
+    const list = rfItems.filter(x => x.cat === cat), avail = list.filter(x => !x.have);
+    const h = el("div", "rcat"); h.appendChild(el("span", "", cat + " " + avail.length));
+    if (avail.length){ const all = avail.every(x => x.sel); h.appendChild(btn("", all ? "모두 빼기" : "모두 넣기", () => { avail.forEach(x => x.sel = !all); drawRef(); })); }
+    box.appendChild(h);
+    list.forEach(x => {
+      const r = el("label", "rrow" + (x.have ? " have" : ""));
+      const cb = el("input"); cb.type = "checkbox"; cb.checked = !!x.sel; cb.disabled = x.have;
+      cb.onchange = () => { x.sel = cb.checked; drawRef(); };
+      const nm = el("span", "rn", x.name);
+      const sub = [x.who.filter(w => w !== "공통").map(w => SP_LABEL[w] || w).join(" "), x.have ? "이미 있음" : x.memo].filter(Boolean).join(" · ");
+      if (sub) nm.appendChild(el("small", "", sub));
+      r.append(cb, nm); box.appendChild(r);
+    });
+  });
+}
+$("#r_go").onclick = () => {
+  const pick = rfItems.filter(x => x.sel); if (!pick.length) return;
+  closeModal("refModal");
+  let ord = ITEMS.reduce((m, x) => Math.max(m, x.ord || 0), 0);
+  const cats = (TRIP.cats || []).slice(); pick.forEach(x => { if (!cats.includes(x.cat)) cats.push(x.cat); });
+  run((async () => {
+    for (let i = 0; i < pick.length; i += 100){
+      const b = db.batch();
+      pick.slice(i, i + 100).forEach(x => b.set(T().collection("items").doc(), { cat: x.cat, name: x.name, who: x.who, memo: x.memo, ord: ++ord, st: {}, at: TSV() }));
+      if (i === 0) b.update(T(), { cats, updatedAt: TSV() });
+      await b.commit();
+    }
+  })(), pick.length + "개 가져왔어요");
+};
+
+/* ═══ 여행 설정 ═══ */
+MODAL_OPEN.setModal = () => {
+  $("#s_name").value = TRIP.name || ""; $("#s_start").value = TRIP.start || ""; $("#s_end").value = TRIP.end || ""; syncDateBtn("s");
+  $("#s_place").value = TRIP.place || ""; $("#s_addr").value = TRIP.addr || ""; $("#s_phone").value = TRIP.phone || "";
+  teamRows($("#s_teams"), TEAMS());
+  const lk = IDX && IDX.locked;
+  $("#s_pin").value = "";
+  $("#s_pinLbl").textContent = lk ? "PIN — 지금 걸려 있어요 (바꾸거나, 비우고 눌러 해제)" : "PIN — 지금은 없어요. 걸면 링크 + PIN 이 있어야 들어와요";
+  $("#s_pinSave").textContent = lk ? "바꾸기" : "걸기";
+};
+$("#setBtn").onclick = () => openModal("setModal");
+$("#s_teamAdd").onclick = () => addTeamRow($("#s_teams"), {});
+$("#s_save").onclick = async () => {
+  const name = $("#s_name").value.trim(), start = $("#s_start").value, end = $("#s_end").value || start;
+  if (!name){ setStatus("여행 이름을 적어주세요", "err"); return; }
+  if (start && end < start){ setStatus("끝나는 날이 시작보다 앞이에요", "err"); return; }
+  const teams = readTeams($("#s_teams"));
+  const gone = TEAMS().filter(t => !teams.some(x => x.id === t.id));
+  const used = gone.filter(t => MONEY.some(m => m.payer === t.id || (m.split && m.split[t.id])));
+  if (used.length && !await ask({ title: "빼도 될까요?", text: used.map(t => t.name).join(", ") + " — 정산에 들어 있어요. 빼면 ‘(지운 사람)’ 으로 남아요.", ok: "빼기", danger: true })) return;
+  if (!$("#setModal").hidden) closeModal("setModal");
+  if (IDX && (IDX.name !== name || (IDX.start || "") !== start)){ IDX.name = name; IDX.start = start; C("tripIdx").doc(PID).update({ name, start: start || "", updatedAt: TSV() }).catch(() => {}); }
+  run(T().update({ name, start, end, place: $("#s_place").value.trim(), addr: $("#s_addr").value.trim(), phone: $("#s_phone").value.trim(), teams, updatedAt: TSV() }), "저장했어요");
+};
+/* PIN 바꾸기 = 새 열쇠 자리로 여행을 통째로 옮긴다 (링크는 그대로). 다른 기기는 다음에 열 때 새 PIN 을 묻는다 */
+$("#s_pinSave").onclick = async () => {
+  const pin = $("#s_pin").value.trim();
+  if (pin && !pinOk(pin)){ setStatus("PIN 은 숫자 4~8자리예요", "err"); return; }
+  const oldK = TID, pid = PID, newK = await keyOf(pid, pin);
+  if (newK === oldK){ setStatus(pin ? "지금 PIN 과 같아요" : "지금도 PIN 이 없어요", "err"); return; }
+  if (!await ask(pin ? { title: "PIN 을 " + (IDX && IDX.locked ? "바꿀까요?" : "걸까요?"), text: "같이 쓰는 사람들도 다음에 열 때 PIN 을 한 번 넣어야 해요. PIN 은 단톡방에 따로 알려주세요.", ok: "확인" }
+                     : { title: "PIN 을 풀까요?", text: "링크만 있으면 누구나 들어와요.", ok: "풀기" })) return;
+  if (!$("#setModal").hidden) closeModal("setModal");
+  MOVING = true; setStatus("옮기는 중…", "ok");
+  try {
+    await moveTrip(oldK, newK);
+    await C("tripIdx").doc(pid).update({ locked: !!pin, updatedAt: TSV() });
+    ls("tr_key:" + pid, newK);
+    setStatus(pin ? "PIN 을 걸었어요 🔒" : "PIN 을 풀었어요", "ok");
+  } catch(e){ setStatus("실패 — " + errText(e), "err"); }
+  MOVING = false;
+  openTrip(pid);
+};
+$("#s_delete").onclick = async () => {
+  if (!TRIP) return;
+  if (!await ask({ title: "여행을 지울까요?", text: "공지·준비물·정산까지 전부 지워지고 되돌릴 수 없어요.", ok: "지우기", danger: true, type: TRIP.name })) return;
+  if (!$("#setModal").hidden) closeModal("setModal");
+  const tid = TID, pid = PID, all = [];
+  MOVING = true;
+  for (const c of SUBS) (await C("trips").doc(tid).collection(c).get()).docs.forEach(d => all.push(d.ref));
+  const ok = await run((async () => {
+    for (let i = 0; i < all.length; i += 400){ const b = db.batch(); all.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit(); }
+    await C("trips").doc(tid).delete();
+    await C("tripIdx").doc(pid).delete();
+  })(), "여행을 지웠어요");
+  MOVING = false;
+  if (ok){ ls("tr_mine", JSON.stringify(mine().filter(m => m.id !== pid))); ls("tr_me:" + pid, ""); ls("tr_key:" + pid, ""); goHome(); }
+};
+
+/* ═══ 날짜 고르기 — 가는 날 한 번, 오는 날 한 번 (당일이면 같은 날 두 번). 지난 날짜도 됨(다녀온 여행 기록) ═══ */
+function dateBtnText(a, b){
+  if (!a) return "📅 날짜 고르기";
+  if (!b || b === a) return "📅 " + fmtFull(a) + " · 당일";
+  const n = daysBetween(a, b); return "📅 " + fmtFull(a) + " – " + fmtFull(b) + " · " + n + "박 " + (n + 1) + "일";
+}
+function syncDateBtn(px){ const b = $("#" + px + "_dates"), a = $("#" + px + "_start").value; b.textContent = dateBtnText(a, $("#" + px + "_end").value); b.classList.toggle("empty", !a); }
+let rgPx = "", rgA = "", rgB = "", rgStep = 0, rgMon = "";
+function openRange(px){
+  rgPx = px; rgA = $("#" + px + "_start").value; rgB = $("#" + px + "_end").value || rgA; rgStep = 0;
+  rgMon = (rgA || todayIso()).slice(0, 7);
+  drawRange(); openModal("rangeModal");
+}
+function drawRange(){
+  $("#rgHint").textContent = rgStep === 0 ? "① 가는 날을 누르세요" : "② 오는 날을 누르세요 (당일이면 같은 날 한 번 더)";
+  const [y, m] = rgMon.split("-").map(Number);
+  $("#rgYm").textContent = y + "년 " + m + "월";
+  const box = $("#rgCal"); box.innerHTML = "";
+  DOW.forEach((d, i) => box.appendChild(el("div", "dowh" + (i === 0 ? " sun" : ""), d)));
+  const first = new Date(y, m - 1, 1), days = new Date(y, m, 0).getDate(), t = todayIso();
+  for (let i = 0; i < first.getDay(); i++) box.appendChild(el("span", "d blank"));
+  for (let dd = 1; dd <= days; dd++){
+    const d = y + "-" + pad2(m) + "-" + pad2(dd), w = new Date(y, m - 1, dd).getDay();
+    const on = d === rgA || (rgStep === 0 && d === rgB);
+    const mid = rgStep === 0 && rgA && rgB && d > rgA && d < rgB;
+    const b = btn("d" + (on ? " on" : mid ? " mid" : "") + (d === t ? " today" : "") + (w === 0 ? " sun" : w === 6 ? " sat" : ""), String(dd), () => pickDay(d));
+    box.appendChild(b);
+  }
+}
+function pickDay(d){
+  if (rgStep === 0){ rgA = d; rgB = d; rgStep = 1; drawRange(); return; }
+  if (d < rgA){ rgB = rgA; rgA = d; } else rgB = d;
+  rgStep = 0; applyRange(); closeModal("rangeModal");
+}
+function applyRange(){ $("#" + rgPx + "_start").value = rgA || ""; $("#" + rgPx + "_end").value = rgA ? (rgB || rgA) : ""; syncDateBtn(rgPx); }
+function moveMon(n){ const [y, m] = rgMon.split("-").map(Number), o = new Date(y, m - 1 + n, 1); rgMon = o.getFullYear() + "-" + pad2(o.getMonth() + 1); drawRange(); }
+$("#rgPrev").onclick = () => moveMon(-1);
+$("#rgNext").onclick = () => moveMon(1);
+$("#rgOk").onclick = () => { if (rgStep === 1) rgB = rgA; rgStep = 0; applyRange(); closeModal("rangeModal"); };
+$("#rgClear").onclick = () => { rgA = rgB = ""; rgStep = 0; applyRange(); closeModal("rangeModal"); };
+$("#n_dates").onclick = () => openRange("n");
+$("#s_dates").onclick = () => openRange("s");
+
+/* ═══ 등록된 여행 — tripIdx 전체 (최근 것 위) ═══ */
+let ALL = [];
+async function loadAll(){
+  const box = $("#allList"); box.innerHTML = '<p class="hint">불러오는 중…</p>';
+  const s = await C("tripIdx").get().catch(() => null);
+  if (!s){ box.innerHTML = '<p class="hint">목록을 못 불러왔어요</p>'; return; }
+  ALL = s.docs.map(d => Object.assign({ id: d.id }, d.data()))
+    .sort((a, b) => (b.start || "").localeCompare(a.start || "") || ((b.createdAt && b.createdAt.toMillis()) || 0) - ((a.createdAt && a.createdAt.toMillis()) || 0));
+  box.innerHTML = "";
+  if (!ALL.length){ box.innerHTML = '<p class="hint">아직 여행이 없어요.</p>'; return; }
+  ALL.forEach(x => box.appendChild(tripRow({ id: x.id, name: (x.locked ? "🔒 " : "") + x.name, start: x.start || "" }, null, "allModal")));
+}
+MODAL_OPEN.allModal = () => { loadAll(); };
+$("#allBtn").onclick = () => { closeModal("pickModal"); afterBack(() => openModal("allModal")); };
+$("#homeAll").onclick = () => openModal("allModal");
+
+/* ═══ 고르기 · 공유 ═══ */
+function tripRow(x, onDel, inModal){
+  const row = el("div", "pkrow");
+  const md = inModal || "pickModal";
+  const go = btn("pk1" + (x.id === PID ? " on" : ""), x.name, () => { if (!$("#" + md).hidden){ closeModal(md); afterBack(() => { if (x.id !== PID || !TID) openTrip(x.id); }); } else openTrip(x.id); });
+  if (x.start) go.appendChild(el("small", "", fmtFull(x.start)));
+  row.appendChild(go);
+  if (onDel){ const d = btn("btn x pkdel", "✕", () => onDel(x.id)); d.setAttribute("aria-label", x.name + " 이 기기 목록에서 지우기"); row.appendChild(d); }
+  return row;
+}
+function renderPick(){
+  const a = mine();
+  $("#mineWrap").hidden = !a.length;
+  const box = $("#mineList"); box.innerHTML = "";
+  a.forEach(x => box.appendChild(tripRow(x, mineForget)));
+}
+MODAL_OPEN.pickModal = () => { $("#homeBtn").hidden = !PID; renderPick(); };
+$("#pickBtn").onclick = () => openModal("pickModal");
+$("#newBtn").onclick = () => { closeModal("pickModal"); afterBack(() => openModal("newModal")); };
+$("#homeNew").onclick = () => openModal("newModal");
+$("#homeBtn").onclick = () => { closeModal("pickModal"); afterBack(goHome); };
+$("#introBtn").onclick = () => shareLine("여행 가자 - 공지·준비물·정산을 링크 하나로 " + location.origin + location.pathname, "소개 링크 복사됨 — 보내고 싶은 곳에 붙여넣으세요");
+$("#shareBtn").onclick = () => shareLine("여행 가자 - " + TRIP.name + " " + linkOf(), IDX && IDX.locked ? "링크 복사됨 — PIN 은 따로 알려주세요" : "링크 복사됨 — 단톡방에 붙여넣으세요");
+$$(".tabbar .segb").forEach(b => b.onclick = () => { TAB = b.dataset.tab; ls("tr_tab", TAB); renderAll(); });
+$("#titleBtn").onclick = () => location.reload();
+function onNavPop(){}
+
+/* ═══ 시작 ═══ */
+if (!FB_OK) setStatus("저장소를 불러오지 못했어요 — 네트워크를 확인하고 새로고침해 주세요", "err");
+else {
+  const q = new URLSearchParams(location.search).get("t");
+  if (q) openTrip(q);
+  renderAll();
+}
+</script>
+</body>
+</html>
