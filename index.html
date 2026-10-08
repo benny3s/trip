@@ -40,15 +40,23 @@
 .tplace{display:flex;flex-direction:column;gap:3px;margin:8px 0 0;font-size:13.5px}
 .tplace a{color:var(--ink);text-decoration:none;border-bottom:1px dashed rgba(var(--accent-rgb),.5)}
 .tplace .pl{font-weight:800}
-.mebar{display:flex;align-items:center;gap:8px;margin:12px 0 0;padding:8px 10px;border-radius:12px;background:rgba(var(--accent-rgb),.08);
-  font-size:13px;font-weight:700;color:var(--accent);cursor:pointer;border:0;width:100%;font-family:inherit;text-align:left}
-.mebar.need{background:rgba(var(--accent-rgb),.14);outline:1.5px dashed var(--accent);outline-offset:-1.5px;animation:breathe 2.6s ease-in-out infinite}
-.mebar .cg{margin-left:auto;font-weight:600;color:var(--muted);font-size:12px}
+/* 머리 버튼 세 개 — 누구세요(하늘색, 튀게) · 공유(초록) · 설정(회색) (2026-10-09 Benny) */
+.hbtns{display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:7px;margin:14px 0 0}
+.hb{appearance:none;font:inherit;font-size:14px;font-weight:800;letter-spacing:-.02em;min-height:48px;padding:6px 8px;border-radius:13px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;touch-action:manipulation}
+.hb span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb:active{transform:scale(.97)}
+.hb.who{background:#e1f1fd;border:1.5px solid #5aaeea;color:#0b5c9e;box-shadow:0 2px 8px rgba(43,140,214,.18)}
+.hb.who.need{background:#cfe8fb;border:2px dashed #2b8cd6;animation:breathe 2.6s ease-in-out infinite}
+.hb.share{background:rgba(var(--accent-rgb),.10);border:1.5px solid rgba(var(--accent-rgb),.40);color:var(--accent)}
+.hb.set{background:#eef0f1;border:1.5px solid #d7dcdf;color:#59646b}
 
 /* 탭 — 위에 붙어 따라온다 */
 .tabbar{position:sticky;top:0;z-index:20;background:var(--bg);padding:6px 0 8px;margin:0 0 4px}
-.tabbar .seg{display:flex;width:100%;margin:0}
-.tabbar .segb{flex:1 1 0;font-size:14px;padding:9px 4px}
+/* 탭 — 눈에 띄게: 칸을 크게, 고른 탭은 초록으로 꽉 채움 (2026-10-09 Benny: "너무 눈에 안 띄어") */
+.tabbar .seg{display:flex;width:100%;margin:0;gap:5px;padding:5px;background:var(--card);border:1.5px solid var(--line);border-radius:15px;box-shadow:0 2px 10px rgba(22,33,28,.06)}
+.tabbar .segb{flex:1 1 0;font-size:15px;font-weight:800;color:var(--ink);padding:10px 4px;min-height:48px;border-radius:11px}
+.tabbar .segb[aria-selected="true"]{background:var(--accent);color:var(--on-accent);box-shadow:0 2px 8px rgba(var(--accent-rgb),.3)}
 .tabbar .segb .n{font-size:11px;font-weight:600;color:var(--muted);margin-left:3px}
 .addrow{display:flex;gap:8px;margin:0 0 12px}
 .addrow .btn{flex:1 1 auto}
@@ -118,6 +126,9 @@
 .packnote{font-size:12px;color:var(--muted);margin:-2px 2px 10px}
 
 /* 정산 */
+.mhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:18px 2px 10px}
+.mhead h2{margin:0;font-size:16px;font-weight:800;letter-spacing:-.02em}
+.mhead .btn{min-height:46px;padding:0 18px;font-size:15px}
 .msum .big{font-size:24px;font-weight:900;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .mtab{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;font-variant-numeric:tabular-nums}
 .mtab th{font-size:11.5px;color:var(--muted);font-weight:700;text-align:right;padding:4px 4px;border-bottom:1px solid var(--line)}
@@ -244,10 +255,10 @@
     <p class="eyebrow" id="tDate"></p>
     <h2 class="bigtitle" id="tName"></h2>
     <div class="tplace" id="tPlace"></div>
-    <button class="mebar" id="meBar" type="button"></button>
-    <div class="sheettools">
-      <button class="btn soft" id="shareBtn" type="button">🔗 단톡방에 공유</button>
-      <button class="btn setbtn" id="setBtn" type="button">⚙ 여행 설정</button>
+    <div class="hbtns">
+      <button class="hb who" id="meBar" type="button"></button>
+      <button class="hb share" id="shareBtn" type="button"><span>🔗 공유</span></button>
+      <button class="hb set" id="setBtn" type="button"><span>⚙ 설정</span></button>
     </div>
   </div>
 
@@ -293,9 +304,10 @@
 
   <!-- 💰 정산 -->
   <div id="tab-money" hidden>
-    <div class="addrow"><button class="btn primary" id="expAdd" type="button" style="height:52px;font-size:16px">＋ 지출 적기</button></div>
     <div class="card msum" id="mSum"></div>
     <div class="card" id="mXfer"></div>
+    <!-- 지출 적기는 지출 내역 바로 위에 (2026-10-09 Benny: "혼자 동떨어져 있어") -->
+    <div class="mhead"><h2>🧾 지출 내역</h2><button class="btn primary" id="expAdd" type="button">＋ 지출 적기</button></div>
     <div id="mList"></div>
   </div>
 </section>
@@ -505,7 +517,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-09h";
+const BUILD = "2026-10-09j";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -688,8 +700,8 @@ function renderHead(){
   const mb = $("#meBar");
   mb.classList.toggle("need", !ME);
   mb.innerHTML = "";
-  if (ME){ mb.append(el("span", "", "👤 나: " + teamName(ME))); mb.appendChild(el("span", "cg", "바꾸기 ›")); }
-  else { mb.append(el("span", "", "👤 누구세요?")); mb.appendChild(el("span", "cg", "이름을 골라주세요 ›")); }
+  mb.appendChild(el("span", "", "👤 " + (ME ? teamName(ME) : "누구세요?")));
+  mb.title = ME ? "나: " + teamName(ME) + " — 누르면 바꾸기" : "이름을 골라주세요";
 }
 function wrapSpan(a){ const s = el("span"); s.appendChild(a); return s; }
 
