@@ -86,12 +86,15 @@
 
 /* 준비물 */
 .pgcard{padding:12px 14px}
-.pgtop{display:flex;align-items:center;gap:14px;font-size:13.5px;font-weight:700}
-.pgtop .lg{display:inline-flex;align-items:center;gap:6px}
-.pgtop .lg b{font-variant-numeric:tabular-nums}
-.pgtop i{display:inline-block;width:12px;height:12px;border-radius:999px}
-.pgtop .dot1{background:rgba(var(--accent-rgb),.28);border:1.5px solid var(--accent)}
-.pgtop .dot2{background:var(--accent)}
+.pgtop{display:flex;align-items:baseline;gap:10px}
+.pgtop .pgmain{font-size:15.5px;font-weight:900;letter-spacing:-.02em}
+.pgtop .pgmain em{font-style:normal;color:var(--accent)}
+.pgleg{display:flex;gap:14px;margin:7px 0 0;font-size:12.5px;font-weight:700;color:var(--muted)}
+.pgleg .lg{display:inline-flex;align-items:center;gap:5px}
+.pgleg .lg b{color:var(--ink);font-variant-numeric:tabular-nums}
+.pgleg i{display:inline-block;width:11px;height:11px;border-radius:999px}
+.pgleg .dot1{background:rgba(var(--accent-rgb),.28);border:1.5px solid var(--accent)}
+.pgleg .dot2{background:var(--accent)}
 .pgtop .pgn{margin-left:auto;color:var(--muted);font-weight:600;font-size:12.5px;font-variant-numeric:tabular-nums}
 .pbar3{position:relative;height:10px;margin:9px 0 0}
 .pbar3 .track{display:flex;height:100%;border-radius:999px;overflow:hidden;background:var(--line)}
@@ -102,6 +105,10 @@
 .pbar3 .b1{background:rgba(var(--accent-rgb),.38)}
 .pmark{position:absolute;top:-5px;bottom:-5px;width:3px;margin-left:-1.5px;background:#2b8cd6;border-radius:2px}
 .pgmine{margin:7px 0 0;font-size:12.5px;font-weight:800;color:#0b5c9e}
+/* 보기 바꾸기 버튼 — 지금 상태가 아니라 '누르면 바뀌는 쪽' 을 적는다. 내 쪽 = 하늘색, 모두 쪽 = 회색 (2026-10-09 Benny) */
+.chip.vbtn{font-weight:800;min-height:38px}
+.chip.vbtn.tome{background:#e1f1fd;border:1.5px solid #5aaeea;color:#0b5c9e}
+.chip.vbtn.toall{background:#eef0f1;border:1.5px solid #d7dcdf;color:#59646b}
 .pghint{margin:7px 0 0;font-size:12px;color:var(--muted)}
 .pghint b{color:var(--ink)}
 .fbar{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px;align-items:center}
@@ -329,15 +336,15 @@
     <!-- 버튼 하나로 — 한 번 = 준비(짐 쌈), 두 번 = 챙김(차에 실음), 세 번 = 처음으로
          (2026-10-09 Benny: "챙김 버튼도 단일화, 한 번 누르면 준비, 한 번 더 누르면 챙김") -->
     <div class="card pgcard">
-      <div class="pgtop"><span class="lg"><i class="dot1"></i>준비 <b id="pgPrep"></b></span><span class="lg"><i class="dot2"></i>완료 <b id="pgTake"></b></span><span class="pgn" id="pgTot"></span></div>
+      <div class="pgtop"><b class="pgmain" id="pgMain"></b><span class="pgn" id="pgTot"></span></div>
       <!-- 막대 왼쪽 = 내 몫(하늘색 바탕), 눈금 = 내 몫 100% 지점, 오른쪽 = 다른 사람 몫 (2026-10-09 Benny) -->
       <div class="pbar3"><div class="track"><div class="z mz" id="pgMineZ"><i class="b2" id="pgM2"></i><i class="b1" id="pgM1"></i></div><div class="z" id="pgRestZ"><i class="b2" id="pgR2"></i><i class="b1" id="pgR1"></i></div></div><span class="pmark" id="pgMark" hidden></span></div>
-      <p class="pgmine" id="pgMine" hidden></p>
+      <div class="pgleg"><span class="lg"><i class="dot1"></i>준비 <b id="pgPrep"></b></span><span class="lg"><i class="dot2"></i>완료 <b id="pgTake"></b></span></div>
       <p class="pghint">한 번 누르면 <b>준비</b>(짐 쌈) · 한 번 더 누르면 <b>완료</b>(차에 실음)</p>
     </div>
     <!-- 켜고 끄는 두 개만 (2026-10-09 Benny: "버튼 많으면 뭘 봐야 할지 힘들어") -->
     <div class="fbar">
-      <button class="chip tg" type="button" id="fMine">내 준비물만 표시</button>
+      <button class="chip vbtn" type="button" id="fMine"></button>
       <button class="btn graybtn" type="button" id="fEdit" style="margin-left:auto">✎ 준비물 수정</button>
     </div>
     <!-- 상태 4칸 · 종류 칩 (2026-10-09 Benny: "안 챙긴 것만은 준비랑 챙김이랑 애매, 종류별로도 필터") -->
@@ -357,7 +364,7 @@
     <!-- 지출 적기는 지출 내역 바로 위에 (2026-10-09 Benny: "혼자 동떨어져 있어") -->
     <div class="mhead"><h2>🧾 지출 내역</h2><button class="btn primary" id="expAdd" type="button">＋ 지출 내역 추가</button></div>
     <!-- 사람별로 보기 — 기본은 전체 (2026-10-09 Benny: "정산은 디폴트로 전체") -->
-    <div class="fbar" style="margin:-2px 0 10px"><button class="chip tg" type="button" id="mMine">내 내역만 표시</button></div>
+    <div class="fbar" style="margin:-2px 0 10px"><button class="chip vbtn" type="button" id="mMine"></button></div>
     <div id="mList"></div>
   </div>
 </section>
@@ -587,7 +594,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-09s";
+const BUILD = "2026-10-09t";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -638,6 +645,13 @@ const myPeople = () => ME && teamOf(ME) ? [teamName(ME)] : [];
 const SPECIAL = ["각자", "마트", "현장", "공통"];
 const WHERE = ["마트", "현장"];
 const SP_LABEL = { "각자": "모두", "마트": "🛒 마트", "현장": "📍 현장", "공통": "" };
+/** 보일 담당 — 누구세요 순서로, 전원이면 '모두' 하나로, 그다음 마트·현장 (2026-10-09 Benny: "순서가 계속 달라져", "모두와 전원 선택이 다르게 보여") */
+function whoShown(w){
+  w = w || [];
+  const ppl = PEOPLE(), names = ppl.filter(x => w.includes(x));
+  const all = w.includes("각자") || (ppl.length > 1 && names.length === ppl.length);
+  return (all ? ["각자"] : names).concat(WHERE.filter(x => w.includes(x)));
+}
 
 /* ── 이 기기에서 연 여행 ── */
 function mine(){ try { const a = JSON.parse(ls("tr_mine") || "[]"); return Array.isArray(a) ? a.filter(x => x && x.id) : []; } catch(e){ return []; } }
@@ -838,7 +852,7 @@ function renderInfo(){
     const mp = myPeople();
     if ((p.who && p.who.length) || p.memo){
       const w = el("span", "pw");
-      (p.who || []).forEach(x => w.appendChild(el("span", "bd" + (mp.includes(x) ? " me" : ""), x)));
+      whoShown(p.who).forEach(x => w.appendChild(el("span", "bd" + (mp.includes(x) ? " me" : ""), SP_LABEL[x] || x)));
       if (p.memo) w.appendChild(el("span", "pm", p.memo));
       tx.appendChild(w);
     }
@@ -1029,17 +1043,23 @@ function renderPack(){
     if (ME && k === ME){ m++; if (v >= 1) m1++; if (v >= 2) m2++; }
   }));
   /* 필터 칸과 같은 기준 — 준비 = 준비만 */
-  $("#pgPrep").textContent = n1 - n2; $("#pgTake").textContent = n2; $("#pgTot").textContent = "모두 합쳐 " + n;      // 담당자마다 따로 센 체크 수
+  /* 한 줄 — 이름을 골랐으면 내 준비물 기준, 아니면 전체. 오른쪽에 모두의 진행률 (2026-10-09 Benny: "중복, 진행률 39개 (13% 완료)") */
+  const per = (a, b) => b ? Math.round(a / b * 100) : 0;
+  const mainN = m ? m : n, main2 = m ? m2 : n2, main1 = m ? m1 : n1;
+  $("#pgMain").innerHTML = "";
+  $("#pgMain").append((m ? "내 준비물 " : "전체 ") + mainN + "개 · ", el("em", "", per(main2, mainN) + "% 완료"));
+  $("#pgTot").textContent = m ? "모두 " + per(n2, n) + "%" : "";
+  $("#pgPrep").textContent = main1 - main2; $("#pgTake").textContent = main2;
   const pc = (a, b) => (b ? a / b * 100 : 0) + "%", r = n - m;
   $("#pgMineZ").style.width = pc(m, n); $("#pgRestZ").style.width = pc(r, n);
   $("#pgM2").style.width = pc(m2, m); $("#pgM1").style.width = pc(m1 - m2, m);
   $("#pgR2").style.width = pc(n2 - m2, r); $("#pgR1").style.width = pc((n1 - m1) - (n2 - m2), r);
   $("#pgMark").hidden = !m || m === n; $("#pgMark").style.left = pc(m, n);
-  $("#pgMine").hidden = !m;
-  $("#pgMine").textContent = "◀ 내 몫 " + m + "개 · 완료 " + m2 + (m1 - m2 ? " · 준비 " + (m1 - m2) : "") + (m && m2 === m ? " ✓ 다 했어요" : "");
+
   $("#fMine").hidden = !TEAMS().length;
   const fm = FMINE && !!ME;
-  $("#fMine").setAttribute("aria-pressed", String(fm));
+  $("#fMine").textContent = fm ? "👥 모두의 준비물 보기" : "👤 내 준비물만 보기";
+  $("#fMine").className = "chip vbtn " + (fm ? "toall" : "tome");
   $("#fEdit").setAttribute("aria-pressed", String(PEDIT));
   $("#editBar").hidden = !PEDIT;
   /* 목록 */
@@ -1101,7 +1121,7 @@ function itemRow(it){
   m.appendChild(el("div", "inm", it.name));
   const w = el("div", "iw"), p = myPeople();
   /* '공통' 은 표시 안 함 — 대부분이 공통이라 줄마다 같은 글자만 늘었다 */
-  (it.who || []).filter(x => x !== "공통" && (SPECIAL.includes(x) || PEOPLE().includes(x))).forEach(x => w.appendChild(el("span", "bd" + (SPECIAL.includes(x) ? " sp" : "") + (p.includes(x) ? " me" : ""), SP_LABEL[x] || x)));
+  whoShown(it.who).forEach(x => w.appendChild(el("span", "bd" + (SPECIAL.includes(x) ? " sp" : "") + (p.includes(x) ? " me" : ""), SP_LABEL[x] || x)));
   const ks = keysOf(it);
   if (ks.length > 1 && !(ME && ks.includes(ME))) w.appendChild(el("span", "mm", "완료 " + ks.filter(x => stOf(it, x) >= 2).length + "/" + ks.length + "명"));
   if (it.memo) w.appendChild(el("span", "mm", it.memo));
@@ -1214,15 +1234,17 @@ function drawItemChips(){
     if (v && v.trim()){ itCat = v.trim(); drawItemChips(); }
   }));
   /* 누가 — '모두' 와 이름은 서로 배타. 어디서 — 마트·현장 중 하나 (사람 선택과는 따로) */
+  /* '모두' = 전원 선택 버튼. 모두 상태에서 한 명을 누르면 그 사람만 빠진다 */
   const wb = $("#i_who"); wb.innerHTML = "";
-  ["각자"].concat(PEOPLE()).forEach(x => {
-    const b = btn("chip sm" + (x === "각자" ? " spc" : ""), x === "각자" ? "모두" : x, () => {
-      const on = itWho.includes(x);
-      if (x === "각자") itWho = on ? itWho.filter(y => y !== x) : itWho.filter(y => WHERE.includes(y)).concat([x]);
-      else itWho = on ? itWho.filter(y => y !== x) : itWho.filter(y => y !== "각자").concat([x]);
-      drawItemChips();
-    });
-    b.setAttribute("aria-pressed", String(itWho.includes(x))); wb.appendChild(b);
+  const ppl = PEOPLE(), where = itWho.filter(y => WHERE.includes(y));
+  const sel = itWho.includes("각자") ? ppl.slice() : ppl.filter(x => itWho.includes(x));
+  const allOn = ppl.length > 0 && sel.length === ppl.length;
+  const setSel = a => { itWho = (ppl.length > 1 && a.length === ppl.length ? ["각자"] : a).concat(where); drawItemChips(); };
+  const mb = btn("chip sm spc", "모두", () => setSel(allOn ? [] : ppl.slice()));
+  mb.setAttribute("aria-pressed", String(allOn)); wb.appendChild(mb);
+  ppl.forEach(x => {
+    const b = btn("chip sm", x, () => setSel(sel.includes(x) ? sel.filter(y => y !== x) : ppl.filter(y => y === x || sel.includes(y))));
+    b.setAttribute("aria-pressed", String(sel.includes(x))); wb.appendChild(b);
   });
   const hb = $("#i_where"); hb.innerHTML = "";
   [["마트", "🛒 마트에서 사요"], ["현장", "📍 현장에 있어요·사요"]].forEach(([x, lab]) => {
@@ -1239,7 +1261,7 @@ async function saveItem(more){
   const first = $("#i_name").value.trim();
   const names = it ? [first] : [first].concat($("#i_bulk").value.split("\n").map(s => s.split("\t")[0].trim())).filter(Boolean);
   if (!names.length || (it && !first)){ setStatus("이름을 적어주세요", "err"); return; }
-  const who = ["각자"].concat(PEOPLE(), WHERE).filter(x => itWho.includes(x));
+  const who = whoShown(itWho);                      // 전원이면 '모두'(각자) 하나로 저장
   const needCat = !(TRIP.cats || []).includes(cat);
   if (more){ $("#i_name").value = ""; $("#i_memo").value = ""; $("#i_bulk").value = ""; $("#i_name").focus(); }
   else closeModal("itemModal");
@@ -1365,7 +1387,8 @@ function renderMoney(){
   /* 지출 목록 — 최근 것 위 */
   const box = $("#mList"); box.innerHTML = "";
   const mm = MMINE && !!ME;
-  $("#mMine").setAttribute("aria-pressed", String(mm));
+  $("#mMine").textContent = mm ? "👥 전체 내역 보기" : "👤 내 내역만 보기";
+  $("#mMine").className = "chip vbtn " + (mm ? "toall" : "tome");
   $("#mMine").hidden = !TEAMS().length;
   const list = MONEY.filter(m => (!MFILTER || m.payer === MFILTER || (m.kind === "pay" && m.split && m.split[MFILTER]))
       && (!mm || m.payer === ME || (m.kind === "pay" && !!(m.split && +m.split[ME]))))   // 내가 낸 지출 · 나와 관련된 송금
