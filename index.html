@@ -97,7 +97,21 @@
 .fbar{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px;align-items:center}
 .fbar .chip{min-height:36px;padding:5px 12px;font-size:13px}
 .fbar .chip.tg[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
-.ghead{display:flex;justify-content:space-between;align-items:baseline;padding:11px 14px 6px;font-size:13px;font-weight:800;border-bottom:1px solid var(--line)}
+.ghead{display:flex;justify-content:space-between;align-items:center;padding:11px 14px 10px 12px;font-size:15px;font-weight:900;letter-spacing:-.02em;
+  border-bottom:1px solid var(--line);background:rgba(var(--accent-rgb),.07);border-left:4px solid var(--accent)}
+.btn.graybtn{background:#eef0f1;border:1.5px solid #d7dcdf;color:#59646b;min-height:36px;padding:5px 12px;font-size:13px;font-weight:700}
+.btn.graybtn[aria-pressed="true"]{background:#59646b;border-color:#59646b;color:#fff}
+.stseg{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:0 0 8px}
+.stseg button{appearance:none;font:inherit;border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:6px 2px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:0;min-height:50px;color:var(--ink);touch-action:manipulation}
+.stseg button b{font-size:14px;font-weight:800}
+.stseg button small{font-size:11.5px;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}
+.stseg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.stseg button[aria-pressed="true"] small{color:var(--card);opacity:.8}
+.catbar{display:flex;gap:6px;overflow-x:auto;margin:0 -14px 12px;padding:2px 14px 4px;scrollbar-width:none}
+.catbar::-webkit-scrollbar{display:none}
+.catbar .chip{flex:0 0 auto;min-height:38px;padding:5px 13px;font-size:13.5px;font-weight:700}
+.catbar .chip small{margin-left:4px;font-weight:600;opacity:.7}
 .ghead small{font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
 .ilist{padding:0;overflow:hidden}
 .irow{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 10px;border-bottom:1px solid var(--line);min-height:52px}
@@ -293,9 +307,11 @@
     <!-- 켜고 끄는 두 개만 (2026-10-09 Benny: "버튼 많으면 뭘 봐야 할지 힘들어") -->
     <div class="fbar">
       <button class="chip tg" type="button" id="fMine">내 것만</button>
-      <button class="chip tg" type="button" id="fLeft">안 챙긴 것만</button>
-      <button class="chip tg" type="button" id="fEdit" style="margin-left:auto">✎ 목록 고치기</button>
+      <button class="btn graybtn" type="button" id="fEdit" style="margin-left:auto">✎ 목록 고치기</button>
     </div>
+    <!-- 상태 4칸 · 종류 칩 (2026-10-09 Benny: "안 챙긴 것만은 준비랑 챙김이랑 애매, 종류별로도 필터") -->
+    <div class="stseg" id="stSeg"></div>
+    <div class="catbar" id="catBar"></div>
     <!-- 고치기 모드에서만 — 평소엔 줄을 누르면 바로 체크 (2026-10-09: 이름을 눌렀는데 수정 창이 떠서 헷갈림) -->
     <div class="addrow" id="editBar" hidden><button class="btn primary" id="itemAdd" type="button">＋ 준비물 추가</button>
       <button class="btn soft" id="refBtn" type="button">📋 레퍼런스에서</button></div>
@@ -517,7 +533,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-09j";
+const BUILD = "2026-10-09k";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -545,7 +561,9 @@ let PID = "", IDX = null, LOCK = "";               // 링크 id · tripIdx 문�
 let TID = "", TRIP = null, ITEMS = [], MONEY = [], NOTES = [], PLAN = [], unsub = [];
 let ME = "";                                       // 이 기기의 팀 id
 let TAB = ls("tr_tab") || "info";
-let FMINE = ls("tr_fmine") === "1", FLEFT = ls("tr_fleft") === "1";
+let FMINE = ls("tr_fmine") === "1";
+let SF = ls("tr_sf") || "";                        // 상태 필터 "" 전체 · "0" 아직 · "1" 준비 · "2" 챙김
+let CATF = "";                                     // 종류 필터 (여행마다 처음엔 전체)
 let MFILTER = "";
 let PEDIT = false;                                 // 준비물 '목록 고치기' 모드
 let opening = false;
@@ -917,27 +935,48 @@ function renderPack(){
   $("#fMine").hidden = !TEAMS().length;
   const fm = FMINE && !!ME;
   $("#fMine").setAttribute("aria-pressed", String(fm));
-  $("#fLeft").setAttribute("aria-pressed", String(FLEFT));
   $("#fEdit").setAttribute("aria-pressed", String(PEDIT));
   $("#editBar").hidden = !PEDIT;
   /* 목록 */
   const box = $("#packList"); box.innerHTML = "";
   if (!ITEMS.length){ box.appendChild(el("div", "card empty", "아직 준비물이 없어요. ✎ 목록 고치기 → 📋 레퍼런스에서 가져오면 빨라요.")); return; }
-  catsOrdered().forEach(cat => {
+  /* 상태 4칸 — 개수는 '내 것만'·종류 필터를 반영 */
+  const cats = catsOrdered();
+  if (CATF && !cats.includes(CATF)) CATF = "";
+  const base = ITEMS.filter(it => (!fm || isMine(it)) && (!CATF || (it.cat || "기타") === CATF));
+  const stOfItem = it => Math.min.apply(null, unitsOf(it));          // 0 아직 · 1 준비 · 2 챙김 (팀마다면 제일 늦은 쪽)
+  const sb = $("#stSeg"); sb.innerHTML = "";
+  [["", "전체"], ["0", "아직"], ["1", "준비"], ["2", "챙김"]].forEach(([v, lab]) => {
+    const n = v === "" ? base.length : base.filter(it => String(stOfItem(it)) === v).length;
+    const b = btn("", null, () => { SF = v; ls("tr_sf", SF); renderAll(); });
+    b.append(el("b", "", lab), el("small", "", String(n)));
+    b.setAttribute("aria-pressed", String(SF === v)); sb.appendChild(b);
+  });
+  /* 종류 칩 — 옆으로 넘기기 */
+  const cb = $("#catBar"); cb.innerHTML = "";
+  const mineAll = ITEMS.filter(it => !fm || isMine(it));
+  [""].concat(cats).forEach(c => {
+    const n = c ? mineAll.filter(it => (it.cat || "기타") === c).length : mineAll.length;
+    if (c && !n) return;
+    const b = btn("chip", null, () => { CATF = c; renderAll(); });
+    b.append(c || "전체", el("small", "", String(n)));
+    b.setAttribute("aria-pressed", String(CATF === c)); cb.appendChild(b);
+  });
+  cats.forEach(cat => {
+    if (CATF && cat !== CATF) return;
     const all = ITEMS.filter(it => (it.cat || "기타") === cat).sort((a, b) => (a.ord || 0) - (b.ord || 0));
     if (!all.length) return;
     let list = fm ? all.filter(isMine) : all;
     const cnt = list.filter(taken).length, tot = list.length;
-    if (FLEFT) list = list.filter(it => !taken(it));
-    if (!list.length && (FLEFT ? !tot : true)) return;
+    if (SF !== "") list = list.filter(it => String(stOfItem(it)) === SF);
+    if (!list.length) return;
     const card = el("div", "card ilist");
     const h = el("div", "ghead"); h.append(el("span", "", cat), el("small", "", (cnt === tot ? "✓ " : "") + "챙김 " + cnt + " / " + tot));
     card.appendChild(h);
-    if (!list.length){ card.appendChild(el("div", "empty", "✓ 다 챙겼어요")); card.lastChild.style.padding = "10px"; }
     list.forEach(it => card.appendChild(itemRow(it)));
     box.appendChild(card);
   });
-  if (!box.children.length) box.appendChild(el("div", "card empty", fm ? "내 준비물이 없어요." : "✓ 다 챙겼어요!"));
+  if (!box.children.length) box.appendChild(el("div", "card empty", SF === "2" ? "아직 챙긴 게 없어요." : SF ? "여기에 해당하는 게 없어요 ✓" : (fm ? "내 준비물이 없어요." : "준비물이 없어요.")));
 }
 function itemRow(it){
   const k = kindOf(it), units = unitsOf(it);
@@ -983,7 +1022,6 @@ $("#fMine").onclick = async () => {
   FMINE = !(FMINE && !!ME); ls("tr_fmine", FMINE ? "1" : ""); renderAll();
 };
 $("#fEdit").onclick = () => { PEDIT = !PEDIT; renderAll(); };
-$("#fLeft").onclick = () => { FLEFT = !FLEFT; ls("tr_fleft", FLEFT ? "1" : ""); renderAll(); };
 
 /* 준비물 추가·수정 */
 let itEditing = null, itCat = "", itWho = [];
