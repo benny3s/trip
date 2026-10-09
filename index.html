@@ -188,6 +188,9 @@
 .mrow .mt small{display:block;font-size:12px;color:var(--muted);margin-top:1px}
 .mrow .ma{flex:0 0 auto;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
 .mrow.pay{background:var(--soft)}
+.mrow.done .mt b,.mrow.done .ma{text-decoration:line-through;text-decoration-color:rgba(0,0,0,.35);color:var(--muted)}
+.mrow.done .mt small{color:var(--accent)}
+.chip.donechip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
 .mrow.pay .ma{color:var(--muted)}
 .amtin{font-size:26px !important;font-weight:900;text-align:right;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .splitrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
@@ -450,6 +453,7 @@
     <label class="fld" style="margin-top:10px"><span>금액 (원)</span><input type="text" id="e_amt" class="amtin" inputmode="numeric" autocomplete="off" placeholder="0"></label>
     <label class="fld"><span>뭐 샀어요?</span><input type="text" id="e_title" maxlength="60" placeholder="예: 농협 장보기"></label>
     <div class="fld"><span>누가 냈어요?</span><div class="chips wrap6" id="e_payer"></div></div>
+    <div class="fld" id="e_doneFld"><button class="chip donechip" type="button" id="e_done">✓ 이미 정산함 — 계산에서 빼기</button></div>
     <!-- 대부분 '다 같이 똑같이' 라 나누기·메모는 접어 둔다 → 보통은 금액·내용·저장 세 번이면 끝 -->
     <details class="nmore" id="e_opt" style="margin:0 0 12px">
       <summary>나누기 · 메모 <span id="e_optSum"></span></summary>
@@ -594,7 +598,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-09t";
+const BUILD = "2026-10-09u";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -1305,6 +1309,7 @@ function balances(){
   const b = {}; TEAMS().forEach(t => b[t.id] = z());
   const g = k => b[k] || (b[k] = z());
   MONEY.forEach(m => {
+    if (m.done) return;                              // 이미 정산함 — 계산에서 뺀다
     const amt = +m.amt || 0;
     if (m.kind === "pay"){ g(m.payer).sent += amt; const to = Object.keys(m.split || {})[0]; if (to) g(to).recv += amt; return; }
     g(m.payer).spent += amt;
@@ -1335,7 +1340,13 @@ function transfers(b){
   }
   return out;
 }
-const expTotal = () => MONEY.filter(m => m.kind !== "pay").reduce((s, m) => s + (+m.amt || 0), 0);
+const expTotal = () => MONEY.filter(m => m.kind !== "pay" && !m.done).reduce((s, m) => s + (+m.amt || 0), 0);
+const expCount = () => MONEY.filter(m => m.kind !== "pay" && !m.done).length;
+/** "(정산 끝 2건 · 52,000원 빼고)" — 없으면 "" */
+function doneNote(){
+  const d = MONEY.filter(m => m.kind !== "pay" && m.done);
+  return d.length ? " (정산 끝 " + d.length + "건 · " + won(d.reduce((s, m) => s + (+m.amt || 0), 0)) + " 빼고)" : "";
+}
 function splitText(split){
   const ks = Object.keys(split || {}).filter(k => +split[k] > 0);
   const ids = TEAMS().map(t => t.id);
@@ -1348,7 +1359,7 @@ function renderMoney(){
   /* 요약 */
   const sm = $("#mSum"); sm.innerHTML = "";
   const top = el("div", "spread");
-  const l = el("div"); l.append(el("div", "hint", "총 지출 · " + MONEY.filter(m => m.kind !== "pay").length + "건"), el("div", "big", won(tot)));
+  const l = el("div"); l.append(el("div", "hint", "총 지출 · " + expCount() + "건" + doneNote()), el("div", "big", won(tot)));
   l.firstChild.style.margin = "0";
   top.appendChild(l);
   top.appendChild(btn("btn soft sm", "📋 정산 공지", copySettle));
@@ -1404,13 +1415,14 @@ function renderMoney(){
   if (MFILTER){ const s = list.filter(m => m.kind !== "pay").reduce((a, m) => a + (+m.amt || 0), 0); const h = el("div", "ghead"); h.append(el("span", "", teamName(MFILTER) + " 지출 " + won(s)), btn("btn ghost sm", "✕ 전체 보기", () => { MFILTER = ""; renderAll(); })); h.style.alignItems = "center"; h.style.paddingTop = "4px"; h.style.paddingBottom = "4px"; card.appendChild(h); }
   list.forEach(m => {
     const pay = m.kind === "pay";
-    const r = btn("mrow" + (pay ? " pay" : ""), null, () => pay ? delPay(m) : openExp(m));
+    const r = btn("mrow" + (pay ? " pay" : "") + (m.done ? " done" : ""), null, () => pay ? delPay(m) : openExp(m));
     const t = el("div", "mt");
     if (pay){ const to = Object.keys(m.split || {})[0]; t.append(el("b", "", "💸 송금 " + teamName(m.payer) + " → " + teamName(to))); }
     else t.appendChild(el("b", "", m.title || "지출"));
     const sub = [];
     if (!pay) sub.push(teamName(m.payer) + " 냄");
     if (!pay){ const st = splitText(m.split); if (st && st !== "다 같이") sub.push("나눔: " + st); }
+    if (m.done) sub.unshift("✓ 정산 끝 — 계산에서 뺌");
     if (m.memo) sub.push(m.memo);
     if (m.at && m.at.toDate) sub.push(fmtEdit(stampOf(m.at)));
     t.appendChild(el("small", "", sub.join(" · ")));
@@ -1435,7 +1447,7 @@ async function delPay(m){
 /** 단톡방에 붙여넣을 정산 공지 */
 function copySettle(){
   const b = balances(), xs = transfers(b), tot = expTotal();
-  const L = ["[" + TRIP.name + " 정산]", "총 지출 " + won(tot) + " (" + MONEY.filter(m => m.kind !== "pay").length + "건)"];
+  const L = ["[" + TRIP.name + " 정산]", "총 지출 " + won(tot) + " (" + expCount() + "건)" + doneNote()];
   TEAMS().forEach(t => { const x = b[t.id]; if (x) L.push("· " + t.name + " — 쓴 돈 " + won(x.spent) + " / 부담 " + won(x.share)); });
   L.push("");
   if (xs.length){ L.push("💸 보낼 돈"); xs.forEach(x => { const to = teamOf(x.to); L.push("· " + teamName(x.from) + " → " + teamName(x.to) + " " + won(x.amt) + (to && to.bank ? "  (" + to.bank + ")" : "")); }); }
@@ -1444,7 +1456,8 @@ function copySettle(){
   shareLine(L.join("\n"), "정산 공지 복사됨 — 단톡방에 붙여넣으세요");
 }
 /* 지출 적기 */
-let exEditing = null, exPayer = "", exSplit = {};
+let exEditing = null, exPayer = "", exSplit = {}, exDone = false;
+$("#e_done").onclick = () => { exDone = !exDone; $("#e_done").setAttribute("aria-pressed", String(exDone)); };
 function openExp(m){
   exEditing = m || null;
   $("#expTitle").textContent = m ? "지출 내역 수정" : "지출 내역 추가";
@@ -1453,6 +1466,9 @@ function openExp(m){
   $("#e_memo").value = m ? m.memo || "" : "";
   exPayer = m ? m.payer : (ME || (TEAMS().length === 1 ? TEAMS()[0].id : ""));
   exSplit = m ? Object.assign({}, m.split) : eqSplit();
+  exDone = !!(m && m.done);
+  $("#e_done").setAttribute("aria-pressed", String(exDone));
+  $("#e_doneFld").hidden = !m;                      // 새로 적을 땐 안 보임
   $("#e_del").hidden = !m;
   drawExp();
   $("#e_opt").open = !!m && (splitText(exSplit) !== "다 같이" || !!m.memo);
@@ -1489,7 +1505,7 @@ function saveExp(){
   if (!exPayer){ setStatus("누가 냈는지 골라주세요", "err"); return; }
   const split = {}; for (const k in exSplit) if (+exSplit[k] > 0) split[k] = +exSplit[k];
   if (!Object.keys(split).length){ setStatus("나눌 사람을 하나 이상 남겨주세요", "err"); return; }
-  const m = exEditing, data = { kind: "exp", title: title || "지출", amt, payer: exPayer, split, memo };
+  const m = exEditing, data = { kind: "exp", title: title || "지출", amt, payer: exPayer, split, memo, done: !!(m && exDone) };
   closeModal("expModal");
   run(m ? T().collection("money").doc(m.id).update(data) : T().collection("money").add(Object.assign(data, { at: TSV() })));
 }
