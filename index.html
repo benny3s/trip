@@ -56,6 +56,7 @@
 /* 탭 — 눈에 띄게: 칸을 크게, 고른 탭은 초록으로 꽉 채움 (2026-10-09 Benny: "너무 눈에 안 띄어") */
 .tabbar .seg{display:flex;width:100%;margin:0;gap:5px;padding:5px;background:var(--card);border:1.5px solid var(--line);border-radius:15px;box-shadow:0 2px 10px rgba(22,33,28,.06)}
 .tabbar .segb{flex:1 1 0;font-size:15px;font-weight:800;color:var(--ink);padding:10px 4px;min-height:48px;border-radius:11px}
+.tabbar .segb.off{color:#9aa39e;background:#f0f2f1;box-shadow:none;cursor:default;filter:grayscale(1);opacity:.55}
 .tabbar .segb[aria-selected="true"]{background:var(--accent);color:var(--on-accent);box-shadow:0 2px 8px rgba(var(--accent-rgb),.3)}
 .tabbar .segb .n{font-size:11px;font-weight:600;color:var(--muted);margin-left:3px}
 .addrow{display:flex;gap:8px;margin:0 0 12px}
@@ -519,6 +520,7 @@
     <div class="fld"><span>사람 — 이름 · 받는 계좌(선택). 이름 하나가 정산 하나예요</span>
       <div id="s_teams"></div>
       <button class="btn sm" id="s_teamAdd" type="button">＋ 사람 추가</button></div>
+    <div class="fld"><span>쓸 탭 — 끈 탭은 회색으로 잠겨요</span><div class="chips wrap6" id="s_tabs"></div></div>
     <button class="btn primary wide" id="s_save" type="button">저장</button>
     <div class="fld" style="margin-top:18px"><span id="s_pinLbl">PIN</span>
       <div class="row nowrap"><input type="text" id="s_pin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="새 PIN (비우면 해제)" style="flex:1 1 auto">
@@ -608,7 +610,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-10d";
+const BUILD = "2026-10-10e";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -711,10 +713,17 @@ async function openTrip_(pid, pin){
     return;
   }
   ls("tr_key:" + pid, k);
-  if (pin !== undefined) ls("tr_pin:" + pid, pin);
+  if (pin !== undefined) ls("tr_pin:" + pid, pin);      // watchTrip 이 확인해 SPIN 으로
   watchTrip(pid, k);
 }
+let SPIN = "";                                      // 이 기기가 아는, 확인된 PIN (공유·정산 공지에 붙임)
+function checkSharePin(pid, k){
+  SPIN = "";
+  const pin = ls("tr_pin:" + pid);
+  if (pin) keyOf(pid, pin).then(x => { if (x === k && PID === pid) SPIN = pin; });
+}
 function watchTrip(pid, k){
+  checkSharePin(pid, k);
   TID = k; ME = ls("tr_me:" + pid);
   const sub = (name, set) => unsub.push(T().collection(name).onSnapshot(s => { set(s.docs.map(d => Object.assign({ id: d.id }, d.data()))); renderSoon(); },
     e => setStatus("불러오기 실패 — " + errText(e), "err")));
@@ -772,6 +781,9 @@ function renderAll(){
   document.title = has ? TRIP.name + " — 여행 가자" : "여행 가자";
   if (!has){ renderHome(); return; }
   renderHead();
+  const off = tabsOff();
+  if (off.includes(TAB)) TAB = ["info", "pack", "money"].find(t => !off.includes(t)) || "info";
+  $$(".tabbar .segb").forEach(b => { b.classList.toggle("off", off.includes(b.dataset.tab)); b.setAttribute("aria-disabled", String(off.includes(b.dataset.tab))); });
   $$(".tabbar .segb").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === TAB)));
   ["info", "pack", "money"].forEach(t => $("#tab-" + t).hidden = t !== TAB);
   if (TAB === "info") renderInfo();
@@ -1518,7 +1530,7 @@ function copySettle(){
   L.push("");
   if (xs.length){ L.push(TRIP.pot ? "🏦 공금에서 빼 갈 돈" : "💸 보낼 돈"); xs.forEach(x => { const to = teamOf(x.to); L.push("· " + teamName(x.from) + " → " + teamName(x.to) + " " + won(x.amt) + (to && to.bank ? "  (" + to.bank + ")" : "")); }); }
   else L.push("✓ 정산 끝");
-  L.push("", "자세히: " + linkOf());
+  L.push("", "자세히: " + linkOf() + pinTail());
   shareLine(L.join("\n"), "정산 공지 복사됨 — 단톡방에 붙여넣으세요");
 }
 /* 지출 적기 */
@@ -1771,7 +1783,20 @@ MODAL_OPEN.setModal = () => {
   $("#s_pin").value = "";
   $("#s_pinLbl").textContent = lk ? "PIN — 지금 걸려 있어요 (바꾸거나, 비우고 눌러 해제)" : "PIN — 지금은 없어요. 걸면 링크 + PIN 이 있어야 들어와요";
   $("#s_pinSave").textContent = lk ? "바꾸기" : "걸기";
+  stOff = tabsOff().slice(); drawSetTabs();
 };
+let stOff = [];
+function drawSetTabs(){
+  const box = $("#s_tabs"); box.innerHTML = "";
+  Object.keys(TAB_NAME).forEach(t => {
+    const on = !stOff.includes(t);
+    const c = btn("chip sm", (on ? "✓ " : "") + TAB_NAME[t], () => {
+      if (on && Object.keys(TAB_NAME).filter(x => !stOff.includes(x)).length === 1){ setStatus("탭은 하나 이상 켜 둬야 해요", "err"); return; }
+      stOff = on ? stOff.concat([t]) : stOff.filter(x => x !== t); drawSetTabs();
+    });
+    c.setAttribute("aria-pressed", String(on)); box.appendChild(c);
+  });
+}
 $("#setBtn").onclick = () => openModal("setModal");
 $("#s_teamAdd").onclick = () => addTeamRow($("#s_teams"), {});
 $("#s_save").onclick = async () => {
@@ -1784,7 +1809,8 @@ $("#s_save").onclick = async () => {
   if (used.length && !await ask({ title: "빼도 될까요?", text: used.map(t => t.name).join(", ") + " — 정산에 들어 있어요. 빼면 ‘(지운 사람)’ 으로 남아요.", ok: "빼기", danger: true })) return;
   if (!$("#setModal").hidden) closeModal("setModal");
   if (IDX && (IDX.name !== name || (IDX.start || "") !== start)){ IDX.name = name; IDX.start = start; C("tripIdx").doc(PID).update({ name, start: start || "", updatedAt: TSV() }).catch(() => {}); }
-  run(T().update({ name, start, end, place: $("#s_place").value.trim(), addr: $("#s_addr").value.trim(), phone: $("#s_phone").value.trim(), teams, updatedAt: TSV() }), "저장했어요");
+  TRIP.tabsOff = stOff.slice(); renderAll();
+  run(T().update({ name, start, end, place: $("#s_place").value.trim(), addr: $("#s_addr").value.trim(), phone: $("#s_phone").value.trim(), teams, tabsOff: stOff.slice(), updatedAt: TSV() }), "저장했어요");
 };
 /* PIN 바꾸기 = 새 열쇠 자리로 여행을 통째로 옮긴다 (링크는 그대로). 다른 기기는 다음에 열 때 새 PIN 을 묻는다 */
 $("#s_pinSave").onclick = async () => {
@@ -1902,18 +1928,23 @@ $("#newBtn").onclick = () => { closeModal("pickModal"); afterBack(() => openModa
 $("#homeNew").onclick = () => openModal("newModal");
 $("#homeBtn").onclick = () => { closeModal("pickModal"); afterBack(goHome); };
 $("#introBtn").onclick = () => shareLine("여행 가자 - 공지·준비물·정산을 링크 하나로 " + location.origin + location.pathname, "소개 링크 복사됨 — 보내고 싶은 곳에 붙여넣으세요");
+const pinTail = () => IDX && IDX.locked && SPIN ? " (PIN " + SPIN + ")" : "";
 $("#shareBtn").onclick = async () => {
-  if (!(IDX && IDX.locked)){ shareLine("여행 가자 - " + TRIP.name + " " + linkOf(), "링크 복사됨 — 단톡방에 붙여넣으세요"); return; }
-  let pin = ls("tr_pin:" + PID);
-  if (!pin || await keyOf(PID, pin) !== TID){
-    pin = ((await askText({ title: "같이 보낼 PIN", text: "공유 글에 PIN 을 붙여 보내요. 이 기기에 기억해 둬요.", maxlength: 8, placeholder: "PIN" })) || "").trim();
-    if (!pin) return;
-    if (await keyOf(PID, pin) !== TID){ setStatus("PIN 이 맞지 않아요", "err"); return; }
-    ls("tr_pin:" + PID, pin);
-  }
-  shareLine("여행 가자 - " + TRIP.name + " " + linkOf() + " (PIN " + pin + ")", "링크·PIN 복사됨 — 단톡방에 붙여넣으세요");
+  /* 아는 PIN 이 있으면 기다리지 않고 바로 공유창 */
+  if (!(IDX && IDX.locked) || SPIN){ shareLine("여행 가자 - " + TRIP.name + " " + linkOf() + pinTail(), SPIN ? "링크·PIN 복사됨 — 단톡방에 붙여넣으세요" : "링크 복사됨 — 단톡방에 붙여넣으세요"); return; }
+  /* 모르면 한 번 묻고 확인 → 기억. 공유창은 '보내기' 를 한 번 더 눌러서 (그 클릭이 있어야 폰이 공유창을 연다) */
+  const pin = ((await askText({ title: "같이 보낼 PIN", text: "공유 글에 PIN 을 붙여 보내요. 이 기기에 기억해 둬요.", maxlength: 8, placeholder: "PIN" })) || "").trim();
+  if (!pin) return;
+  if (await keyOf(PID, pin) !== TID){ setStatus("PIN 이 맞지 않아요", "err"); return; }
+  ls("tr_pin:" + PID, pin); SPIN = pin;
+  setStatus("PIN 을 기억했어요 — 🔗 공유를 한 번 더 눌러 보내세요", "ok");
 };
-$$(".tabbar .segb").forEach(b => b.onclick = () => { TAB = b.dataset.tab; ls("tr_tab", TAB); renderAll(); });
+const TAB_NAME = { info: "공지·일정", pack: "준비물", money: "정산" };
+const tabsOff = () => ((TRIP && TRIP.tabsOff) || []).filter(t => TAB_NAME[t]);
+$$(".tabbar .segb").forEach(b => b.onclick = () => {
+  if (tabsOff().includes(b.dataset.tab)){ setStatus("이 여행은 ‘" + TAB_NAME[b.dataset.tab] + "’ 탭을 꺼 뒀어요 — ⚙ 설정에서 켤 수 있어요"); return; }
+  TAB = b.dataset.tab; ls("tr_tab", TAB); renderAll();
+});
 $("#titleBtn").onclick = () => location.reload();
 function onNavPop(){}
 
