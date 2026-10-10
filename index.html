@@ -608,7 +608,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-10a";
+const BUILD = "2026-10-10b";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -1440,7 +1440,7 @@ function renderMoney(){
     if (to && to.bank) t.appendChild(el("small", "", "받는 계좌: " + to.bank));
     r.appendChild(t);
     if (to && to.bank) r.appendChild(btn("btn sm", "계좌 복사", () => copyText(to.bank.replace(/^\s*/, ""), "계좌 복사됨")));
-    r.appendChild(btn("btn primary sm", "보냈어요", () => markSent(x)));
+    r.appendChild(btn("btn primary sm", xferWord(x), () => markSent(x)));
     xb.appendChild(r);
   });
   if (MFILTER && !teamOf(MFILTER)) MFILTER = "";
@@ -1467,7 +1467,7 @@ function renderMoney(){
     const r = btn("mrow" + (pay ? " pay" : "") + (m.done ? " done" : ""), null, () => pay ? delPay(m) : openExp(m));
     const t = el("div", "mt");
     if (pay){ const to = Object.keys(m.split || {})[0];
-      t.append(el("b", "", to === POT && m.title === "공금 넣기" ? "🏦 공금 넣기 · " + teamName(m.payer) : "💸 송금 " + teamName(m.payer) + " → " + teamName(to))); }
+      t.append(el("b", "", to === POT ? "🏦 공금 넣기 · " + teamName(m.payer) : m.payer === POT ? "🏦 공금에서 빼감 · " + teamName(to) : "💸 송금 " + teamName(m.payer) + " → " + teamName(to))); }
     else t.appendChild(el("b", "", m.title || "지출"));
     const sub = [];
     if (!pay) sub.push(teamName(m.payer) + " 냄");
@@ -1485,9 +1485,14 @@ async function copyText(t, msg){
   try { await navigator.clipboard.writeText(t); setStatus(msg || "복사했어요", "ok"); }
   catch(e){ askText({ title: "길게 눌러 복사하세요", value: t, readonly: true, ok: "닫기", noCancel: true }); }
 }
+/* 공금과 주고받는 줄은 말을 바꾼다 — 각자 카드로 긁고 공금에서 빼 간다 (2026-10-10 Benny) */
+const xferWord = x => x.from === POT ? "빼갔어요" : x.to === POT ? "넣었어요" : "보냈어요";
 async function markSent(x){
-  if (!await ask({ title: "보낸 걸로 기록할까요?", text: teamName(x.from) + " → " + teamName(x.to) + "\n" + won(x.amt) + "\n\n기록하면 보낼 돈에서 빠져요. 지출 목록에서 누르면 취소돼요.", ok: "보냈어요" })) return;
-  run(T().collection("money").add({ kind: "pay", title: "송금", amt: x.amt, payer: x.from, split: { [x.to]: 1 }, memo: "", at: TSV() }), "기록했어요 💸");
+  const title = x.from === POT ? teamName(x.to) + " 님이 공금에서 빼 간 걸로 기록할까요?"
+              : x.to === POT ? teamName(x.from) + " 님이 공금에 넣은 걸로 기록할까요?" : "보낸 걸로 기록할까요?";
+  if (!await ask({ title, text: teamName(x.from) + " → " + teamName(x.to) + "\n" + won(x.amt) + "\n\n기록하면 보낼 돈에서 빠져요. 지출 목록에서 누르면 취소돼요.", ok: xferWord(x) })) return;
+  const kind = x.from === POT ? "공금에서 빼감" : x.to === POT ? "공금 넣기" : "송금";
+  run(T().collection("money").add({ kind: "pay", title: kind, amt: x.amt, payer: x.from, split: { [x.to]: 1 }, memo: "", at: TSV() }), "기록했어요 " + (x.from === POT || x.to === POT ? "🏦" : "💸"));
 }
 async function delPay(m){
   const to = Object.keys(m.split || {})[0];
