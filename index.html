@@ -219,13 +219,6 @@
 .splitrow .sh{flex:0 0 74px;text-align:right;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 
 /* 설정 — 팀 줄 */
-.teamrow{border:1px solid var(--line);border-radius:12px;padding:10px;margin:0 0 8px;background:var(--bg)}
-.teamrow .row{gap:6px}
-.teamrow input{min-height:42px;padding:8px 10px;font-size:15px;background:var(--card)}
-.teamrow .tn{flex:1 1 40%}
-.teamrow .tp{flex:1 1 55%}
-.teamrow .tb{margin-top:6px}
-.teamrow .x{flex:0 0 auto;width:38px;min-height:38px;padding:0;color:var(--muted)}
 .chips.wrap6{gap:6px}
 .chips .chip.spc{border-style:dashed}
 .fdate{display:flex;gap:8px}
@@ -416,8 +409,11 @@
   <div class="sheet" role="dialog" aria-modal="true" style="max-width:400px">
     <div class="spread"><h2 style="margin:0">누구세요?</h2>
       <button class="iconbtn" type="button" data-close aria-label="닫기">✕</button></div>
-    <p class="hint" style="margin:6px 0 12px">이 기기에만 기억해요. 부부·가족은 ‘베니네’처럼 하나로 등록하면 정산도 하나로 돼요.</p>
+    <p class="hint" style="margin:6px 0 12px">내 이름을 누르세요. 이 기기에만 기억해요.</p>
     <div class="chips" id="meChips"></div>
+    <div class="fld" style="margin:16px 0 0"><span>목록에 없으면 — 부부·가족은 ‘베니네’처럼 하나로</span>
+      <div class="row nowrap"><input type="text" id="me_new" maxlength="12" placeholder="이름을 적고 엔터" autocomplete="off" style="flex:1 1 auto">
+        <button class="btn soft" id="me_add" type="button" style="flex:0 0 auto">＋</button></div></div>
   </div>
 </div>
 
@@ -526,9 +522,10 @@
     <label class="fld"><span>장소</span><input type="text" id="s_place" maxlength="60" placeholder="예: 캠핑808"></label>
     <label class="fld"><span>주소 — 누르면 지도</span><input type="text" id="s_addr" maxlength="120"></label>
     <label class="fld"><span>연락처</span><input type="text" id="s_phone" maxlength="40" inputmode="tel"></label>
-    <div class="fld"><span>사람 — 이름 · 받는 계좌(선택). 이름 하나가 정산 하나예요</span>
-      <div id="s_teams"></div>
-      <button class="btn sm" id="s_teamAdd" type="button">＋ 사람 추가</button></div>
+    <div class="fld"><span>같이 가는 사람 — 이름을 누르면 고쳐요</span>
+      <div class="row nowrap"><input type="text" id="s_mem" maxlength="12" placeholder="이름을 적고 엔터" autocomplete="off" style="flex:1 1 auto">
+        <button class="btn soft" id="s_memAdd" type="button" style="flex:0 0 auto">＋</button></div>
+      <div class="chips" id="s_memChips" style="margin-top:9px"></div></div>
     <div class="fld"><span>쓸 탭 — 끈 탭은 회색으로 잠겨요</span><div class="chips wrap6" id="s_tabs"></div></div>
     <button class="btn primary wide" id="s_save" type="button">저장</button>
     <div class="fld" style="margin-top:18px"><span id="s_pinLbl">PIN</span>
@@ -619,7 +616,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-10j";
+const BUILD = "2026-10-10k";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -846,16 +843,24 @@ MODAL_OPEN.meModal = () => {
     c.setAttribute("aria-pressed", String(t.id === ME));
     box.appendChild(c);
   });
-  box.appendChild(btn("chip add", "＋ 내 이름 추가", async () => {
-    const v = await askText({ title: "이름", text: "부부·가족이면 ‘베니네’처럼 하나로 적어도 돼요", maxlength: 12, placeholder: "예: 베니" });
-    const nm = (v || "").trim(); if (!nm) return;
-    let t = TEAMS().find(x => x.name === nm);
-    if (!t){ t = { id: "t" + rid(6), name: nm, people: [nm], bank: "" }; await run(T().update({ teams: TEAMS().concat([t]), updatedAt: TSV() })); }
-    ME = t.id; ls("tr_me:" + PID, ME);
-    if (!$("#meModal").hidden) closeModal("meModal");
-    renderAll();
-  }));
+  if (!TEAMS().length) box.appendChild(el("span", "hint", "아직 아무도 없어요. 아래에 이름을 적어 주세요."));
+  $("#me_new").value = "";
 };
+/* 목록에 없는 이름 — 적고 엔터 = 사람 추가 + 나로 고르기 */
+async function addMe(){
+  const nm = $("#me_new").value.trim().slice(0, 12); if (!nm) return;
+  let t = TEAMS().find(x => x.name === nm);
+  if (!t){
+    if (TEAMS().length >= 12){ setStatus("12명까지예요", "err"); return; }
+    t = { id: "t" + rid(6), name: nm, people: [nm], bank: "" };
+    await run(T().update({ teams: TEAMS().concat([t]), updatedAt: TSV() }));
+  }
+  ME = t.id; ls("tr_me:" + PID, ME);
+  if (!$("#meModal").hidden) closeModal("meModal");
+  renderAll();
+}
+$("#me_add").onclick = addMe;
+$("#me_new").addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing){ e.preventDefault(); addMe(); } });
 MODAL_AFTER.meModal = () => { const r = meDone; meDone = null; if (r) afterBack(() => r(ME)); };
 $("#meBar").onclick = () => pickMe();
 
@@ -1491,12 +1496,9 @@ function renderMoney(){
     t.appendChild(el("b", "", teamName(x.from) + " → " + teamName(x.to)));
     t.appendChild(el("span", "amt", done ? "✓ " + (x.from === POT ? "빼감 " : x.to === POT ? "넣음 " : "보냄 ") + won(x.paid) : won(x.amt)));
     if (!done && x.paid > 0) t.appendChild(el("small", "", "이미 " + won(x.paid) + (x.from === POT ? " 빼 감" : " 보냄") + " · 처음 " + won(x.total)));
-    const to = teamOf(x.to);
-    if (!done && to && to.bank) t.appendChild(el("small", "", "받는 계좌: " + to.bank));
     r.appendChild(t);
     if (done){ r.appendChild(btn("btn ghost sm", "되돌리기", () => undoRow(x))); }
     else {
-      if (to && to.bank) r.appendChild(btn("btn sm", "계좌 복사", () => copyText(to.bank.replace(/^\s*/, ""), "계좌 복사됨")));
       r.appendChild(btn("btn primary sm", xferWord(x), () => markSent(x)));
     }
     xb.appendChild(r);
@@ -1581,8 +1583,8 @@ async function copySettle(){
   if (rows.length){
     L.push(TRIP.pot ? "🏦 공금에서 빼 갈 돈" : "💸 보낼 돈");
     rows.forEach(x => {
-      const to = teamOf(x.to), done = x.amt <= 0;
-      L.push("· " + teamName(x.from) + " → " + teamName(x.to) + " " + (done ? won(x.paid) + " (완료)" : won(x.amt) + (to && to.bank ? "  (" + to.bank + ")" : "")));
+      const done = x.amt <= 0;
+      L.push("· " + teamName(x.from) + " → " + teamName(x.to) + " " + (done ? won(x.paid) + " (완료)" : won(x.amt)));
     });
   } else L.push("✓ 정산 끝");
   L.push("", IDX && IDX.locked && SPIN ? "링크 (PIN : " + SPIN + ")" : "링크", linkOf());
@@ -1652,26 +1654,38 @@ $("#e_del").onclick = () => {
   afterBack(async () => { if (await ask({ title: "지출을 지울까요?", text: (m.title || "지출") + " " + won(m.amt), ok: "지우기", danger: true })) run(T().collection("money").doc(m.id).delete(), "지웠어요"); });
 };
 
-/* ═══ 사람 줄 (설정) — 이름 · 받는 계좌. 저장소에선 옛 이름 그대로 teams ═══ */
-function teamRows(box, teams){
-  box.innerHTML = "";
-  teams.forEach(t => addTeamRow(box, t));
+/* ═══ 사람 칩 (설정) — 새 여행 창과 같은 모양. 저장소에선 옛 이름 그대로 teams
+   (2026-10-10 Benny: "사람이 한 눈에 안 들어오고 추가도 불편해 … 계좌는 없애고 동그란 버튼으로")
+   이름을 누르면 고치기(id 그대로 → 정산 기록 유지), × 는 빼기. 저장을 눌러야 반영 ═══ */
+let stMem = [];
+function drawSetMem(){
+  const box = $("#s_memChips"); box.innerHTML = "";
+  if (!stMem.length){ box.appendChild(el("span", "hint", "아직 없어요. 위에 이름을 적고 엔터.")); return; }
+  stMem.forEach(t => {
+    const b = btn("chip rm", null, async e => {
+      if (e.target.closest(".x")){ stMem = stMem.filter(x => x !== t); drawSetMem(); return; }
+      const v = await askText({ title: "이름 고치기", value: t.name, maxlength: 12, ok: "고치기" });
+      const nm = (v || "").trim().slice(0, 12); if (!nm || nm === t.name) return;
+      if (stMem.some(x => x !== t && x.name === nm)){ setStatus("이미 있는 이름이에요", "err"); return; }
+      t.name = nm; t.people = [nm]; drawSetMem();
+    });
+    b.append(el("span", "", t.name), el("span", "x", "×")); b.setAttribute("aria-label", t.name + " — 누르면 고치기, × 빼기");
+    box.appendChild(b);
+  });
 }
-function addTeamRow(box, t){
-  const r = el("div", "teamrow"); r.dataset.id = (t && t.id) || ("t" + rid(6));
-  const row = el("div", "row nowrap");
-  const n = el("input", "tn"); n.type = "text"; n.maxLength = 12; n.placeholder = "이름 (예: 베니)"; n.value = (t && t.name) || "";
-  const x = btn("btn x", "✕", () => r.remove()); x.setAttribute("aria-label", "빼기");
-  row.append(n, x); r.appendChild(row);
-  const bk = el("input", "tb"); bk.type = "text"; bk.maxLength = 60; bk.placeholder = "받는 계좌 (선택)"; bk.value = (t && t.bank) || ""; r.appendChild(bk);
-  box.appendChild(r);
+function addSetMem(v){
+  v = String(v == null ? $("#s_mem").value : v).trim().slice(0, 12);
+  if (!v) return;
+  if (stMem.some(x => x.name === v)){ setStatus("이미 있는 이름이에요", "err"); return; }
+  if (stMem.length >= 12){ setStatus("12명까지예요", "err"); return; }
+  stMem.push({ id: "t" + rid(6), name: v, people: [v], bank: "" }); $("#s_mem").value = ""; drawSetMem();
 }
-function readTeams(box){
-  return $$("#" + box.id + " .teamrow").map(r => {
-    const id = r.dataset.id, name = r.querySelector(".tn").value.trim();
-    return { id, name, people: [name], bank: r.querySelector(".tb").value.trim() };
-  }).filter(t => t.name);
-}
+$("#s_memAdd").onclick = () => addSetMem();
+$("#s_mem").addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing){ e.preventDefault(); addSetMem(); } });
+$("#s_mem").addEventListener("input", () => {
+  const v = $("#s_mem").value; if (!/[,\n]/.test(v)) return;
+  $("#s_mem").value = ""; v.split(/[,\n]/).forEach(x => addSetMem(x));
+});
 const namesToTeams = txt => Array.from(new Set(splitList(txt).map(x => x.slice(0, 12)))).slice(0, 12).map(n => ({ id: "t" + rid(6), name: n, people: [n], bank: "" }));
 
 /* ═══ 레퍼런스 — 짐 싸기 기본 목록 3개 + 지난 여행 ═══
@@ -1735,14 +1749,14 @@ async function loadRef(id, teams){
 
 /* ═══ 새 여행 ═══
    (2026-10-10 Benny) 준비물은 기본 '비우기' — 전엔 '캠핑' 이 미리 골라져 있어 넣은 적 없는 목록이 들어갔다.
-   사람은 약속 잡자처럼 이름 → 엔터 → 칩. 지난 여행에서 사람·계좌 / 쓸 탭·공금 / 준비물 / PIN 을 골라 가져온다 */
-let nTpl = "", nMem = [], nBank = {}, nFrom = "", nFromTrip = null;
+   사람은 약속 잡자처럼 이름 → 엔터 → 칩. 지난 여행에서 사람 / 쓸 탭·공금 / 준비물 / PIN 을 골라 가져온다 */
+let nTpl = "", nMem = [], nFrom = "", nFromTrip = null;
 let nPicked = null, nPickedOf = "";                 // '골라서 가져오기' 로 고른 준비물 (cat|name) — 목록을 바꾸면 풀린다
 const pickKey = x => (x.cat || "기타") + "|" + x.name;
 let nOpt = { ppl: true, set: true, items: false, pin: false };
 MODAL_OPEN.newModal = () => {
   $("#n_name").value = ""; $("#n_start").value = ""; $("#n_end").value = ""; $("#n_pin").value = ""; syncDateBtn("n");
-  $("#n_mem").value = ""; nMem = []; nBank = {}; nFrom = ""; nFromTrip = null;
+  $("#n_mem").value = ""; nMem = []; nFrom = ""; nFromTrip = null;
   nOpt = { ppl: true, set: true, items: false, pin: false };
   nTpl = ""; nPicked = null; nPickedOf = ""; drawTpl(); drawNewMem(); drawFrom();
   softFocus("#n_name");
@@ -1794,7 +1808,7 @@ function drawFrom(){
   const ob = $("#n_fromOpts"); ob.innerHTML = ""; ob.hidden = !nFrom;
   if (!nFrom) return;
   const pinKnown = !!ls("tr_pin:" + nFrom);
-  [["ppl", "사람·계좌"], ["set", "쓸 탭·공금 설정"], ["items", "준비물"], ["pin", pinKnown ? "같은 PIN" : "같은 PIN (이 기기는 몰라요)"]].forEach(([k, lab]) => {
+  [["ppl", "사람"], ["set", "쓸 탭·공금 설정"], ["items", "준비물"], ["pin", pinKnown ? "같은 PIN" : "같은 PIN (이 기기는 몰라요)"]].forEach(([k, lab]) => {
     const c = btn("chip sm", (nOpt[k] ? "☑ " : "☐ ") + lab, () => {
       if (k === "pin" && !pinKnown) return;
       nOpt[k] = !nOpt[k]; applyFrom(); drawFrom();
@@ -1812,11 +1826,11 @@ async function pickFrom(pid){
   }
   applyFrom(); drawFrom();
 }
-/* 고른 것 반영 — 사람(이름 칩·계좌), 준비물(목록 고르기), PIN(칸 채우기) */
+/* 고른 것 반영 — 사람(이름 칩), 준비물(목록 고르기), PIN(칸 채우기) */
 function applyFrom(){
   const t = nFromTrip;
-  if (t && nOpt.ppl){ (t.teams || []).forEach(x => { if (!nMem.includes(x.name) && nMem.length < 12) nMem.push(x.name); if (x.bank) nBank[x.name] = x.bank; }); }
-  if (t && !nOpt.ppl){ const names = (t.teams || []).map(x => x.name); nMem = nMem.filter(n => !names.includes(n)); nBank = {}; }
+  if (t && nOpt.ppl){ (t.teams || []).forEach(x => { if (!nMem.includes(x.name) && nMem.length < 12) nMem.push(x.name); }); }
+  if (t && !nOpt.ppl){ const names = (t.teams || []).map(x => x.name); nMem = nMem.filter(n => !names.includes(n)); }
   if (nFrom){ if (nOpt.items) nTpl = "t:" + nFrom; else if (nTpl === "t:" + nFrom) nTpl = ""; }
   $("#n_pin").value = nFrom && nOpt.pin ? ls("tr_pin:" + nFrom) : ($("#n_pin").value === ls("tr_pin:" + nFrom) ? "" : $("#n_pin").value);
   drawNewMem(); drawTpl();
@@ -1827,7 +1841,7 @@ $("#n_make").onclick = async () => {
   if (start && end < start){ setStatus("끝나는 날이 시작보다 앞이에요", "err"); return; }
   if (pin && !pinOk(pin)){ setStatus("PIN 은 숫자 4~8자리예요", "err"); return; }
   if ($("#n_mem").value.trim()) addNewMem();                 // 적어 두고 엔터를 안 누른 이름도
-  const teams = nMem.map(n => ({ id: "t" + rid(6), name: n, people: [n], bank: nBank[n] || "" }));
+  const teams = nMem.map(n => ({ id: "t" + rid(6), name: n, people: [n], bank: "" }));
   const extra = {};
   if (nFromTrip && nOpt.set){ if (nFromTrip.pot) extra.pot = true; if ((nFromTrip.tabsOff || []).length) extra.tabsOff = nFromTrip.tabsOff.slice(); }
   $("#n_make").disabled = true;
@@ -1918,7 +1932,7 @@ $("#r_go").onclick = () => {
 MODAL_OPEN.setModal = () => {
   $("#s_name").value = TRIP.name || ""; $("#s_start").value = TRIP.start || ""; $("#s_end").value = TRIP.end || ""; syncDateBtn("s");
   $("#s_place").value = TRIP.place || ""; $("#s_addr").value = TRIP.addr || ""; $("#s_phone").value = TRIP.phone || "";
-  teamRows($("#s_teams"), TEAMS());
+  stMem = TEAMS().map(t => Object.assign({}, t, { people: [t.name] })); $("#s_mem").value = ""; drawSetMem();
   const lk = IDX && IDX.locked;
   $("#s_pin").value = "";
   $("#s_pinLbl").textContent = lk ? "PIN — 지금 걸려 있어요 (바꾸거나, 비우고 눌러 해제)" : "PIN — 지금은 없어요. 걸면 링크 + PIN 이 있어야 들어와요";
@@ -1938,12 +1952,12 @@ function drawSetTabs(){
   });
 }
 $("#setBtn").onclick = () => openModal("setModal");
-$("#s_teamAdd").onclick = () => addTeamRow($("#s_teams"), {});
 $("#s_save").onclick = async () => {
   const name = $("#s_name").value.trim(), start = $("#s_start").value, end = $("#s_end").value || start;
   if (!name){ setStatus("여행 이름을 적어주세요", "err"); return; }
   if (start && end < start){ setStatus("끝나는 날이 시작보다 앞이에요", "err"); return; }
-  const teams = readTeams($("#s_teams"));
+  if ($("#s_mem").value.trim()) addSetMem();                 // 적어 두고 엔터를 안 누른 이름도
+  const teams = stMem.map(t => ({ id: t.id, name: t.name, people: [t.name], bank: t.bank || "" }));
   const gone = TEAMS().filter(t => !teams.some(x => x.id === t.id));
   const used = gone.filter(t => MONEY.some(m => m.payer === t.id || (m.split && m.split[t.id])));
   if (used.length && !await ask({ title: "빼도 될까요?", text: used.map(t => t.name).join(", ") + " — 정산에 들어 있어요. 빼면 ‘(지운 사람)’ 으로 남아요.", ok: "빼기", danger: true })) return;
