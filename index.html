@@ -188,6 +188,16 @@
 .mrow .mt small{display:block;font-size:12px;color:var(--muted);margin-top:1px}
 .mrow .ma{flex:0 0 auto;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
 .mrow.pay{background:var(--soft)}
+.chip.potbtn{min-height:36px;padding:5px 11px;font-size:13px;font-weight:800;background:#fff6e0;border-color:#e8c46a;color:#8a6d1f}
+.chip.potbtn[aria-pressed="true"]{background:#8a6d1f;border-color:#8a6d1f;color:#fff}
+.msum .big{white-space:nowrap}
+.mtools{display:flex;gap:8px;margin:10px 0 0}
+.mtools .chip,.mtools .btn{white-space:nowrap}
+.mtools .btn{margin-left:auto}
+.potline.short{background:rgba(180,71,47,.08);color:var(--warn)}
+.potline{display:flex;align-items:center;gap:6px;margin:10px 0 0;padding:8px 10px;border-radius:12px;background:#fff6e0;font-size:13.5px;color:#8a6d1f;font-weight:700}
+.potline b{font-size:15px;font-weight:900;color:var(--ink)}
+.potline .btn{margin-left:auto;min-height:36px}
 .mrow.done .mt b,.mrow.done .ma{text-decoration:line-through;text-decoration-color:rgba(0,0,0,.35);color:var(--muted)}
 .mrow.done .mt small{color:var(--accent)}
 .chip.donechip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
@@ -598,7 +608,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-09u";
+const BUILD = "2026-10-10a";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -639,7 +649,8 @@ let PEDIT = false;                                 // '✎ 준비물 수정' 모
 let opening = false;
 const TEAMS = () => (TRIP && TRIP.teams) || [];
 const teamOf = id => TEAMS().find(t => t.id === id) || null;
-const teamName = id => { const t = teamOf(id); return t ? t.name : "(지운 사람)"; };
+const POT = "pot";
+const teamName = id => { if (id === POT) return "🏦 공금"; const t = teamOf(id); return t ? t.name : "(지운 사람)"; };
 /* 담당 고르기 칩 — 이름마다 people(옛 여행처럼 한 이름 안에 사람이 나뉘어 있으면 그 사람들) 또는 이름 그대로 */
 /* 사람 = 누구세요의 이름 하나 (부부는 '베니네'처럼). 담당 칩도 같은 이름 (2026-10-09 Benny: "누구세요는 3명인데 준비물은 다 나뉘어 있어, 통일") */
 const PEOPLE = () => TEAMS().map(t => t.name);
@@ -700,6 +711,7 @@ async function openTrip_(pid, pin){
     return;
   }
   ls("tr_key:" + pid, k);
+  if (pin !== undefined) ls("tr_pin:" + pid, pin);
   watchTrip(pid, k);
 }
 function watchTrip(pid, k){
@@ -1328,6 +1340,16 @@ function balances(){
   return b;
 }
 function transfers(b){
+  /* 공금 사용 — 사람마다 공금과 주고받는다 (공금 잔액은 사람들 차액의 합과 같다) */
+  if (TRIP && TRIP.pot){
+    const out = [];
+    TEAMS().map(t => t.id).concat(Object.keys(b).filter(k => k !== POT && !teamOf(k))).forEach(k => {
+      const v = (b[k] && b[k].bal) || 0;
+      if (v < 0) out.push({ from: k, to: POT, amt: -v });
+      if (v > 0) out.push({ from: POT, to: k, amt: v });
+    });
+    return out.sort((x, y) => (x.to === POT) - (y.to === POT) || y.amt - x.amt);
+  }
   const cr = [], dr = [];
   for (const k in b){ if (b[k].bal > 0) cr.push({ k, v: b[k].bal }); else if (b[k].bal < 0) dr.push({ k, v: -b[k].bal }); }
   cr.sort((a, z) => z.v - a.v); dr.sort((a, z) => z.v - a.v);
@@ -1339,6 +1361,24 @@ function transfers(b){
     if (!dr[i].v) i++; if (!cr[j].v) j++;
   }
   return out;
+}
+/** 공금에 남은 돈 = 넣은 돈 − 공금으로 쓴 돈 − 공금에서 돌려준 돈 */
+function potLeft(b){ const x = (b || balances())[POT]; return x ? -x.bal : 0; }
+async function togglePot(){
+  const on = !TRIP.pot;
+  if (!await ask(on ? { title: "공금을 쓸까요?", text: "보낼 돈이 전부 공금을 거쳐요 — 덜 낸 사람 → 공금, 공금 → 더 낸 사람.\n처음 걷은 돈은 ‘＋ 공금 넣기’로, 공금으로 낸 건 지출의 ‘🏦 공금’으로 적어요.", ok: "공금 쓰기" }
+                     : { title: "공금 사용을 끌까요?", text: "보낼 돈이 사람끼리 바로 주고받는 방식으로 돌아가요. 적어 둔 공금 기록은 그대로 있어요.", ok: "끄기" })) return;
+  TRIP.pot = on; renderAll();
+  run(T().update({ pot: on, updatedAt: TSV() }), on ? "공금을 써요 🏦" : "공금 사용을 껐어요");
+}
+/* ＋ 공금 넣기 — 누가 얼마 넣었는지 (송금 기록: 사람 → 공금) */
+async function openPotIn(){
+  if (!TEAMS().length){ setStatus("‘누구세요’에서 이름을 먼저 넣어주세요", "err"); return; }
+  if (!ME){ await pickMe(); if (!ME) return; }
+  const v = await askText({ title: "🏦 공금 넣기 — " + teamName(ME), text: "넣은 금액(원). 다른 사람 것은 ‘누구세요’를 그 사람으로 바꿔서 적어요.", placeholder: "예: 100000", maxlength: 12 });
+  const amt = parseInt(String(v || "").replace(/[^\d]/g, ""), 10) || 0;
+  if (!amt) return;
+  run(T().collection("money").add({ kind: "pay", title: "공금 넣기", amt, payer: ME, split: { [POT]: 1 }, memo: "", at: TSV() }), teamName(ME) + " " + won(amt) + " 넣었어요 🏦");
 }
 const expTotal = () => MONEY.filter(m => m.kind !== "pay" && !m.done).reduce((s, m) => s + (+m.amt || 0), 0);
 const expCount = () => MONEY.filter(m => m.kind !== "pay" && !m.done).length;
@@ -1362,13 +1402,22 @@ function renderMoney(){
   const l = el("div"); l.append(el("div", "hint", "총 지출 · " + expCount() + "건" + doneNote()), el("div", "big", won(tot)));
   l.firstChild.style.margin = "0";
   top.appendChild(l);
-  top.appendChild(btn("btn soft sm", "📋 정산 공지", copySettle));
   sm.appendChild(top);
+  /* 총 지출 아래 한 줄 — 🏦 공금 사용 · 📋 정산 공지 (폰에서 글자가 꺾이지 않게) */
+  const tbox = el("div", "mtools");
+  const pb = btn("chip potbtn", "🏦 공금 사용", togglePot); pb.setAttribute("aria-pressed", String(!!TRIP.pot));
+  tbox.append(pb, btn("btn soft sm", "📋 정산 공지", copySettle));
+  sm.appendChild(tbox);
+  if (TRIP.pot){
+    const left = potLeft(b), pr = el("div", "potline" + (left < 0 ? " short" : ""));
+    pr.append(el("span", "", left < 0 ? "🏦 공금 부족 " : "🏦 공금 잔액 "), el("b", "", won(Math.abs(left))), btn("btn sm", "＋ 공금 넣기", openPotIn));
+    sm.appendChild(pr);
+  }
   if (TEAMS().length){
     const tb = el("table", "mtab");
     const hr = el("tr"); ["누구", "쓴 돈", "부담", "받을/보낼"].forEach(x => hr.appendChild(el("th", "", x)));
     tb.appendChild(hr);
-    Object.keys(b).forEach(k => {
+    Object.keys(b).filter(k => k !== POT).forEach(k => {
       const x = b[k], tr = el("tr", (k === ME ? "me" : "") + (k === MFILTER ? " on" : ""));
       tr.onclick = () => { MFILTER = MFILTER === k ? "" : k; renderAll(); };     // 팀 줄 = 그 팀 지출만 (칩 줄 대신)
       tr.append(el("td", "", teamName(k)), el("td", "", x.spent.toLocaleString("ko-KR")), el("td", "", x.share.toLocaleString("ko-KR")));
@@ -1417,7 +1466,8 @@ function renderMoney(){
     const pay = m.kind === "pay";
     const r = btn("mrow" + (pay ? " pay" : "") + (m.done ? " done" : ""), null, () => pay ? delPay(m) : openExp(m));
     const t = el("div", "mt");
-    if (pay){ const to = Object.keys(m.split || {})[0]; t.append(el("b", "", "💸 송금 " + teamName(m.payer) + " → " + teamName(to))); }
+    if (pay){ const to = Object.keys(m.split || {})[0];
+      t.append(el("b", "", to === POT && m.title === "공금 넣기" ? "🏦 공금 넣기 · " + teamName(m.payer) : "💸 송금 " + teamName(m.payer) + " → " + teamName(to))); }
     else t.appendChild(el("b", "", m.title || "지출"));
     const sub = [];
     if (!pay) sub.push(teamName(m.payer) + " 냄");
@@ -1449,6 +1499,7 @@ function copySettle(){
   const b = balances(), xs = transfers(b), tot = expTotal();
   const L = ["[" + TRIP.name + " 정산]", "총 지출 " + won(tot) + " (" + expCount() + "건)" + doneNote()];
   TEAMS().forEach(t => { const x = b[t.id]; if (x) L.push("· " + t.name + " — 쓴 돈 " + won(x.spent) + " / 부담 " + won(x.share)); });
+  if (TRIP.pot){ const left = potLeft(b); L.push("· 🏦 " + (left < 0 ? "공금 부족 " : "공금 잔액 ") + won(Math.abs(left))); }
   L.push("");
   if (xs.length){ L.push("💸 보낼 돈"); xs.forEach(x => { const to = teamOf(x.to); L.push("· " + teamName(x.from) + " → " + teamName(x.to) + " " + won(x.amt) + (to && to.bank ? "  (" + to.bank + ")" : "")); }); }
   else L.push("✓ 정산 끝");
@@ -1480,6 +1531,7 @@ function amtVal(){ return parseInt(($("#e_amt").value || "").replace(/[^\d]/g, "
 function drawExp(){
   const pb = $("#e_payer"); pb.innerHTML = "";
   TEAMS().forEach(t => { const c = btn("chip", t.name, () => { exPayer = t.id; drawExp(); }); c.setAttribute("aria-pressed", String(exPayer === t.id)); pb.appendChild(c); });
+  if (TRIP.pot || exPayer === POT){ const c = btn("chip potbtn", "🏦 공금", () => { exPayer = POT; drawExp(); }); c.setAttribute("aria-pressed", String(exPayer === POT)); pb.appendChild(c); }
   if (!TEAMS().length) pb.appendChild(el("p", "hint", "‘누구세요’에서 이름을 먼저 넣어주세요."));
   const stx = splitText(exSplit);
   $("#e_optSum").textContent = stx === "다 같이" ? "다 같이 똑같이" : stx;
@@ -1633,7 +1685,7 @@ $("#n_make").onclick = async () => {
       items.slice(i, i + 100).forEach((x, j) => b.set(C("trips").doc(k).collection("items").doc(), Object.assign({}, x, { ord: i + j + 1, st: {}, at: TSV() })));
       await b.commit();
     }
-    ls("tr_key:" + pid, k); mineAdd(pid, name, start);
+    ls("tr_key:" + pid, k); ls("tr_pin:" + pid, pin || ""); mineAdd(pid, name, start);
     closeModal("newModal");
     afterBack(() => { TAB = "info"; ls("tr_tab", TAB); openTrip(pid); setStatus("만들었어요! 🔗 단톡방에 공유로 링크를 보내세요" + (pin ? " (PIN 은 따로)" : ""), "ok"); });
   } catch(e){ setStatus("실패 — " + errText(e), "err"); }
@@ -1732,7 +1784,7 @@ $("#s_pinSave").onclick = async () => {
   try {
     await moveTrip(oldK, newK);
     await C("tripIdx").doc(pid).update({ locked: !!pin, updatedAt: TSV() });
-    ls("tr_key:" + pid, newK);
+    ls("tr_key:" + pid, newK); ls("tr_pin:" + pid, pin || "");
     setStatus(pin ? "PIN 을 걸었어요 🔒" : "PIN 을 풀었어요", "ok");
   } catch(e){ setStatus("실패 — " + errText(e), "err"); }
   MOVING = false;
@@ -1835,7 +1887,17 @@ $("#newBtn").onclick = () => { closeModal("pickModal"); afterBack(() => openModa
 $("#homeNew").onclick = () => openModal("newModal");
 $("#homeBtn").onclick = () => { closeModal("pickModal"); afterBack(goHome); };
 $("#introBtn").onclick = () => shareLine("여행 가자 - 공지·준비물·정산을 링크 하나로 " + location.origin + location.pathname, "소개 링크 복사됨 — 보내고 싶은 곳에 붙여넣으세요");
-$("#shareBtn").onclick = () => shareLine("여행 가자 - " + TRIP.name + " " + linkOf(), IDX && IDX.locked ? "링크 복사됨 — PIN 은 따로 알려주세요" : "링크 복사됨 — 단톡방에 붙여넣으세요");
+$("#shareBtn").onclick = async () => {
+  if (!(IDX && IDX.locked)){ shareLine("여행 가자 - " + TRIP.name + " " + linkOf(), "링크 복사됨 — 단톡방에 붙여넣으세요"); return; }
+  let pin = ls("tr_pin:" + PID);
+  if (!pin || await keyOf(PID, pin) !== TID){
+    pin = ((await askText({ title: "같이 보낼 PIN", text: "공유 글에 PIN 을 붙여 보내요. 이 기기에 기억해 둬요.", maxlength: 8, placeholder: "PIN" })) || "").trim();
+    if (!pin) return;
+    if (await keyOf(PID, pin) !== TID){ setStatus("PIN 이 맞지 않아요", "err"); return; }
+    ls("tr_pin:" + PID, pin);
+  }
+  shareLine("여행 가자 - " + TRIP.name + " " + linkOf() + " (PIN " + pin + ")", "링크·PIN 복사됨 — 단톡방에 붙여넣으세요");
+};
 $$(".tabbar .segb").forEach(b => b.onclick = () => { TAB = b.dataset.tab; ls("tr_tab", TAB); renderAll(); });
 $("#titleBtn").onclick = () => location.reload();
 function onNavPop(){}
