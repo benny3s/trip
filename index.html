@@ -193,7 +193,7 @@
 .msum .big{white-space:nowrap}
 .mtools{display:flex;gap:8px;margin:10px 0 0}
 .mtools .chip,.mtools .btn{white-space:nowrap}
-.mtools .btn{margin-left:auto}
+.mtools{justify-content:flex-end}
 .potline.short{background:rgba(180,71,47,.08);color:var(--warn)}
 .potline{display:flex;align-items:center;gap:6px;margin:10px 0 0;padding:8px 10px;border-radius:12px;background:#fff6e0;font-size:13.5px;color:#8a6d1f;font-weight:700}
 .potline b{font-size:15px;font-weight:900;color:var(--ink)}
@@ -608,7 +608,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-10b";
+const BUILD = "2026-10-10c";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -1340,15 +1340,11 @@ function balances(){
   return b;
 }
 function transfers(b){
-  /* 공금 사용 — 사람마다 공금과 주고받는다 (공금 잔액은 사람들 차액의 합과 같다) */
+  /* 공금 사용 — 공금 → 사람 (그 사람이 쓴 돈 − 이미 빼 간 돈). 사람끼리 몫은 안 나눈다 */
   if (TRIP && TRIP.pot){
-    const out = [];
-    TEAMS().map(t => t.id).concat(Object.keys(b).filter(k => k !== POT && !teamOf(k))).forEach(k => {
-      const v = (b[k] && b[k].bal) || 0;
-      if (v < 0) out.push({ from: k, to: POT, amt: -v });
-      if (v > 0) out.push({ from: POT, to: k, amt: v });
-    });
-    return out.sort((x, y) => (x.to === POT) - (y.to === POT) || y.amt - x.amt);
+    const p = potTable(), ord = TEAMS().map(t => t.id);
+    return Object.keys(p).filter(k => p[k].left > 0).sort((x, y) => (ord.indexOf(x) + 99) % 99 - (ord.indexOf(y) + 99) % 99)
+      .map(k => ({ from: POT, to: k, amt: p[k].left }));
   }
   const cr = [], dr = [];
   for (const k in b){ if (b[k].bal > 0) cr.push({ k, v: b[k].bal }); else if (b[k].bal < 0) dr.push({ k, v: -b[k].bal }); }
@@ -1362,23 +1358,25 @@ function transfers(b){
   }
   return out;
 }
-/** 공금에 남은 돈 = 넣은 돈 − 공금으로 쓴 돈 − 공금에서 돌려준 돈 */
-function potLeft(b){ const x = (b || balances())[POT]; return x ? -x.bal : 0; }
+/** 공금 정산표 — 사람마다 쓴 돈(지출, 정산 끝 제외) · 공금에서 빼 간 돈 · 남은 돈 */
+function potTable(){
+  const t = {}, g = k => t[k] || (t[k] = { spent: 0, got: 0, left: 0 });
+  TEAMS().forEach(x => g(x.id));
+  MONEY.forEach(m => {
+    if (m.done) return;
+    const amt = +m.amt || 0;
+    if (m.kind === "pay"){ if (m.payer === POT){ const to = Object.keys(m.split || {})[0]; if (to) g(to).got += amt; } return; }
+    if (m.payer !== POT) g(m.payer).spent += amt;
+  });
+  for (const k in t) t[k].left = t[k].spent - t[k].got;
+  return t;
+}
 async function togglePot(){
   const on = !TRIP.pot;
-  if (!await ask(on ? { title: "공금을 쓸까요?", text: "보낼 돈이 전부 공금을 거쳐요 — 덜 낸 사람 → 공금, 공금 → 더 낸 사람.\n처음 걷은 돈은 ‘＋ 공금 넣기’로, 공금으로 낸 건 지출의 ‘🏦 공금’으로 적어요.", ok: "공금 쓰기" }
+  if (!await ask(on ? { title: "공금을 쓸까요?", text: "각자 카드로 쓴 돈을 전부 공금에서 빼 가요.\n보낼 돈에 ‘🏦 공금 → 사람’ 만 나오고, 빼 가면 ‘빼갔어요’를 눌러요.", ok: "공금 쓰기" }
                      : { title: "공금 사용을 끌까요?", text: "보낼 돈이 사람끼리 바로 주고받는 방식으로 돌아가요. 적어 둔 공금 기록은 그대로 있어요.", ok: "끄기" })) return;
   TRIP.pot = on; renderAll();
   run(T().update({ pot: on, updatedAt: TSV() }), on ? "공금을 써요 🏦" : "공금 사용을 껐어요");
-}
-/* ＋ 공금 넣기 — 누가 얼마 넣었는지 (송금 기록: 사람 → 공금) */
-async function openPotIn(){
-  if (!TEAMS().length){ setStatus("‘누구세요’에서 이름을 먼저 넣어주세요", "err"); return; }
-  if (!ME){ await pickMe(); if (!ME) return; }
-  const v = await askText({ title: "🏦 공금 넣기 — " + teamName(ME), text: "넣은 금액(원). 다른 사람 것은 ‘누구세요’를 그 사람으로 바꿔서 적어요.", placeholder: "예: 100000", maxlength: 12 });
-  const amt = parseInt(String(v || "").replace(/[^\d]/g, ""), 10) || 0;
-  if (!amt) return;
-  run(T().collection("money").add({ kind: "pay", title: "공금 넣기", amt, payer: ME, split: { [POT]: 1 }, memo: "", at: TSV() }), teamName(ME) + " " + won(amt) + " 넣었어요 🏦");
 }
 const expTotal = () => MONEY.filter(m => m.kind !== "pay" && !m.done).reduce((s, m) => s + (+m.amt || 0), 0);
 const expCount = () => MONEY.filter(m => m.kind !== "pay" && !m.done).length;
@@ -1408,12 +1406,19 @@ function renderMoney(){
   const pb = btn("chip potbtn", "🏦 공금 사용", togglePot); pb.setAttribute("aria-pressed", String(!!TRIP.pot));
   tbox.append(pb, btn("btn soft sm", "📋 정산 공지", copySettle));
   sm.appendChild(tbox);
-  if (TRIP.pot){
-    const left = potLeft(b), pr = el("div", "potline" + (left < 0 ? " short" : ""));
-    pr.append(el("span", "", left < 0 ? "🏦 공금 부족 " : "🏦 공금 잔액 "), el("b", "", won(Math.abs(left))), btn("btn sm", "＋ 공금 넣기", openPotIn));
-    sm.appendChild(pr);
-  }
-  if (TEAMS().length){
+  if (TEAMS().length && TRIP.pot){
+    const p = potTable(), tb = el("table", "mtab");
+    const hr = el("tr"); ["누구", "쓴 돈", "빼감", "남음"].forEach(x => hr.appendChild(el("th", "", x)));
+    tb.appendChild(hr);
+    Object.keys(p).forEach(k => {
+      const x = p[k], tr = el("tr", (k === ME ? "me" : "") + (k === MFILTER ? " on" : ""));
+      tr.onclick = () => { MFILTER = MFILTER === k ? "" : k; renderAll(); };
+      tr.append(el("td", "", teamName(k)), el("td", "", x.spent.toLocaleString("ko-KR")), el("td", "", x.got.toLocaleString("ko-KR")),
+        el("td", x.left > 0 ? "p" : "", x.left > 0 ? x.left.toLocaleString("ko-KR") : "✓"));
+      tb.appendChild(tr);
+    });
+    sm.appendChild(tb);
+  } else if (TEAMS().length){
     const tb = el("table", "mtab");
     const hr = el("tr"); ["누구", "쓴 돈", "부담", "받을/보낼"].forEach(x => hr.appendChild(el("th", "", x)));
     tb.appendChild(hr);
@@ -1429,7 +1434,7 @@ function renderMoney(){
   } else sm.appendChild(el("p", "hint", "위의 ‘누구세요’에서 이름을 넣으면 사람끼리 나눠요."));
   /* 보낼 돈 */
   const xb = $("#mXfer"); xb.innerHTML = "";
-  xb.appendChild(el("h2", "", "💸 보낼 돈"));
+  xb.appendChild(el("h2", "", TRIP.pot ? "🏦 공금에서 빼 갈 돈" : "💸 보낼 돈"));
   if (!xs.length) xb.appendChild(el("p", "hint", tot ? "✓ 정산 끝 — 보낼 돈이 없어요." : "지출을 적으면 누가 누구에게 얼마 보낼지 여기에 나와요."));
   xs.forEach(x => {
     const r = el("div", "xfer" + (x.from === ME || x.to === ME ? " mine" : ""));
@@ -1455,7 +1460,12 @@ function renderMoney(){
     .sort((a, z) => ms(z.at) - ms(a.at));
   if (!list.length){ box.appendChild(el("div", "card empty", MONEY.length ? "해당하는 지출이 없어요." : "아직 지출이 없어요. 산 건 바로 ＋ 지출 내역 추가로!")); return; }
   const card = el("div", "card ilist");
-  if (mm && !MFILTER){
+  if (mm && !MFILTER && TRIP.pot){
+    const x = potTable()[ME] || { spent: 0, got: 0, left: 0 };
+    const h = el("div", "ghead");
+    h.append(el("span", "", "내 내역"), el("small", "", "쓴 돈 " + won(x.spent) + " · 공금에서 " + (x.left > 0 ? "받을 돈 " + won(x.left) : "다 받음 ✓")));
+    card.appendChild(h);
+  } else if (mm && !MFILTER){
     const x = balances()[ME] || { spent: 0, share: 0, bal: 0 };
     const h = el("div", "ghead");
     h.append(el("span", "", "내 내역"), el("small", "", "낸 돈 " + won(x.spent) + " · 내 몫 " + won(x.share) + " · " + (x.bal > 0 ? "받을 돈 " + won(x.bal) : x.bal < 0 ? "보낼 돈 " + won(-x.bal) : "정산 끝 ✓")));
@@ -1503,10 +1513,10 @@ async function delPay(m){
 function copySettle(){
   const b = balances(), xs = transfers(b), tot = expTotal();
   const L = ["[" + TRIP.name + " 정산]", "총 지출 " + won(tot) + " (" + expCount() + "건)" + doneNote()];
-  TEAMS().forEach(t => { const x = b[t.id]; if (x) L.push("· " + t.name + " — 쓴 돈 " + won(x.spent) + " / 부담 " + won(x.share)); });
-  if (TRIP.pot){ const left = potLeft(b); L.push("· 🏦 " + (left < 0 ? "공금 부족 " : "공금 잔액 ") + won(Math.abs(left))); }
+  if (TRIP.pot){ const p = potTable(); TEAMS().forEach(t => { const x = p[t.id]; if (x && x.spent) L.push("· " + t.name + " — 쓴 돈 " + won(x.spent) + (x.got ? " / 빼 감 " + won(x.got) : "")); }); }
+  else TEAMS().forEach(t => { const x = b[t.id]; if (x) L.push("· " + t.name + " — 쓴 돈 " + won(x.spent) + " / 부담 " + won(x.share)); });
   L.push("");
-  if (xs.length){ L.push("💸 보낼 돈"); xs.forEach(x => { const to = teamOf(x.to); L.push("· " + teamName(x.from) + " → " + teamName(x.to) + " " + won(x.amt) + (to && to.bank ? "  (" + to.bank + ")" : "")); }); }
+  if (xs.length){ L.push(TRIP.pot ? "🏦 공금에서 빼 갈 돈" : "💸 보낼 돈"); xs.forEach(x => { const to = teamOf(x.to); L.push("· " + teamName(x.from) + " → " + teamName(x.to) + " " + won(x.amt) + (to && to.bank ? "  (" + to.bank + ")" : "")); }); }
   else L.push("✓ 정산 끝");
   L.push("", "자세히: " + linkOf());
   shareLine(L.join("\n"), "정산 공지 복사됨 — 단톡방에 붙여넣으세요");
