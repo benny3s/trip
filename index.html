@@ -614,7 +614,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-10f";
+const BUILD = "2026-10-10h";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -1558,16 +1558,29 @@ async function delPay(m){
   run(T().collection("money").doc(m.id).delete(), "지웠어요");
 }
 /** 단톡방에 붙여넣을 정산 공지 */
-function copySettle(){
-  const b = balances(), xs = transfers(b), tot = expTotal();
-  const L = ["[" + TRIP.name + " 정산]", "총 지출 " + won(tot) + " (" + expCount() + "건)" + doneNote()];
-  if (TRIP.pot){ const p = potTable(); TEAMS().forEach(t => { const x = p[t.id]; if (x && x.spent) L.push("· " + t.name + " — 쓴 돈 " + won(x.spent) + (x.got ? " / 빼 감 " + won(x.got) : "")); }); }
-  else TEAMS().forEach(t => { const x = b[t.id]; if (x) L.push("· " + t.name + " — 쓴 돈 " + won(x.spent) + " / 부담 " + won(x.share)); });
-  L.push("");
+/** PIN 이 걸렸는데 이 기기가 모르면 한 번 묻고 확인해 기억 → true. 공유창은 버튼을 다시 눌러 연다(폰이 막아서) */
+async function askSharePin(){
+  const pin = ((await askText({ title: "같이 보낼 PIN", text: "공유 글에 PIN 을 붙여 보내요. 이 기기에 기억해 둬요.", maxlength: 8, placeholder: "PIN" })) || "").trim();
+  if (!pin) return false;
+  if (await keyOf(PID, pin) !== TID){ setStatus("PIN 이 맞지 않아요", "err"); return false; }
+  ls("tr_pin:" + PID, pin); SPIN = pin;
+  setStatus("PIN 을 기억했어요 — 버튼을 한 번 더 눌러 보내세요", "ok");
+  return true;
+}
+async function copySettle(){
+  if (IDX && IDX.locked && !SPIN){ await askSharePin(); return; }
+  /* 형식 (2026-10-10 Benny 가 직접 정함):
+     [일고 정산] / 총 지출 412,100원 (12건) / (빈 줄) / 🏦 공금에서 빼 갈 돈 / · 🏦 공금 → 명재 59,700원 … / (빈 줄) / 링크 (PIN : 0303) / 주소 */
+  const L = ["[" + TRIP.name + " 정산]", "총 지출 " + won(expTotal()) + " (" + expCount() + "건)" + doneNote(), ""];
   const rows = settleRows();
-  if (rows.some(x => x.amt > 0)){ L.push(TRIP.pot ? "🏦 공금에서 빼 갈 돈" : "💸 보낼 돈"); rows.forEach(x => { const to = teamOf(x.to); L.push("· " + teamName(x.from) + " → " + teamName(x.to) + " " + (x.amt > 0 ? won(x.amt) + (to && to.bank ? "  (" + to.bank + ")" : "") : "✓ 끝")); }); }
-  else L.push("✓ 정산 끝");
-  L.push("", "자세히: " + linkOf() + pinTail());
+  if (rows.length){
+    L.push(TRIP.pot ? "🏦 공금에서 빼 갈 돈" : "💸 보낼 돈");
+    rows.forEach(x => {
+      const to = teamOf(x.to), done = x.amt <= 0;
+      L.push("· " + teamName(x.from) + " → " + teamName(x.to) + " " + (done ? won(x.paid) + " (완료)" : won(x.amt) + (to && to.bank ? "  (" + to.bank + ")" : "")));
+    });
+  } else L.push("✓ 정산 끝");
+  L.push("", IDX && IDX.locked && SPIN ? "링크 (PIN : " + SPIN + ")" : "링크", linkOf());
   shareLine(L.join("\n"), "정산 공지 복사됨 — 단톡방에 붙여넣으세요");
 }
 /* 지출 적기 */
@@ -1969,12 +1982,7 @@ const pinTail = () => IDX && IDX.locked && SPIN ? " (PIN " + SPIN + ")" : "";
 $("#shareBtn").onclick = async () => {
   /* 아는 PIN 이 있으면 기다리지 않고 바로 공유창 */
   if (!(IDX && IDX.locked) || SPIN){ shareLine("여행 가자 - " + TRIP.name + " " + linkOf() + pinTail(), SPIN ? "링크·PIN 복사됨 — 단톡방에 붙여넣으세요" : "링크 복사됨 — 단톡방에 붙여넣으세요"); return; }
-  /* 모르면 한 번 묻고 확인 → 기억. 공유창은 '보내기' 를 한 번 더 눌러서 (그 클릭이 있어야 폰이 공유창을 연다) */
-  const pin = ((await askText({ title: "같이 보낼 PIN", text: "공유 글에 PIN 을 붙여 보내요. 이 기기에 기억해 둬요.", maxlength: 8, placeholder: "PIN" })) || "").trim();
-  if (!pin) return;
-  if (await keyOf(PID, pin) !== TID){ setStatus("PIN 이 맞지 않아요", "err"); return; }
-  ls("tr_pin:" + PID, pin); SPIN = pin;
-  setStatus("PIN 을 기억했어요 — 🔗 공유를 한 번 더 눌러 보내세요", "ok");
+  await askSharePin();
 };
 const TAB_NAME = { info: "공지·일정", pack: "준비물", money: "정산" };
 const tabsOff = () => ((TRIP && TRIP.tabsOff) || []).filter(t => TAB_NAME[t]);
