@@ -189,6 +189,10 @@
 .mrow .mt small{display:block;font-size:12px;color:var(--muted);margin-top:1px}
 .mrow .ma{flex:0 0 auto;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
 .mrow.pay{background:var(--soft)}
+.xfer.done{background:transparent}
+.xfer.done .xt b,.xfer.done .xt .amt{color:#a3aba7}
+.xfer.done .xt .amt{font-size:14px;font-weight:800}
+.xfer.done .btn{color:var(--muted)}
 .chip.potbtn{min-height:36px;padding:5px 11px;font-size:13px;font-weight:800;background:#fff6e0;border-color:#e8c46a;color:#8a6d1f}
 .chip.potbtn[aria-pressed="true"]{background:#8a6d1f;border-color:#8a6d1f;color:#fff}
 .msum .big{white-space:nowrap}
@@ -610,7 +614,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-10e";
+const BUILD = "2026-10-10f";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -1328,12 +1332,15 @@ function sharesOf(amt, split){
   return out;
 }
 /** 팀마다 spent 쓴 돈 · share 부담(몫) · sent 보낸 송금 · recv 받은 송금 → bal = + 받을 돈 / − 보낼 돈 */
-function balances(){
+function balances(noPay){
   const z = () => ({ spent: 0, share: 0, sent: 0, recv: 0 });
   const b = {}; TEAMS().forEach(t => b[t.id] = z());
   const g = k => b[k] || (b[k] = z());
   MONEY.forEach(m => {
     if (m.done) return;                              // 이미 정산함 — 계산에서 뺀다
+    if (noPay && m.kind === "pay") return;           // 처음 계획(송금 전) 을 볼 때
+    /* 공금 기록(공금에서 빼감·공금으로 냄)은 사람끼리 정산에 안 섞는다 — 공금을 껐다 켜도 그대로 남아 있다 */
+    if (m.payer === POT || (m.split && m.split[POT])) return;
     const amt = +m.amt || 0;
     if (m.kind === "pay"){ g(m.payer).sent += amt; const to = Object.keys(m.split || {})[0]; if (to) g(to).recv += amt; return; }
     g(m.payer).spent += amt;
@@ -1389,6 +1396,29 @@ async function togglePot(){
                      : { title: "공금 사용을 끌까요?", text: "보낼 돈이 사람끼리 바로 주고받는 방식으로 돌아가요. 적어 둔 공금 기록은 그대로 있어요.", ok: "끄기" })) return;
   TRIP.pot = on; renderAll();
   run(T().update({ pot: on, updatedAt: TSV() }), on ? "공금을 써요 🏦" : "공금 사용을 껐어요");
+}
+/** 보낼 돈 줄 — 보내도 **그 자리에 남는다** (2026-10-10 Benny: "아래로 내려가지 말고 그 자리 그대로 회색으로")
+    줄마다 { from, to, amt(남은 돈), paid(이미 보낸 돈), total(처음 금액) }. amt 0 = 끝난 줄(회색) */
+function settleRows(){
+  const ord = k => { const i = TEAMS().findIndex(t => t.id === k); return i < 0 ? 99 : i; };
+  if (TRIP.pot){
+    const p = potTable();
+    return Object.keys(p).filter(k => p[k].spent > 0 || p[k].got > 0).sort((x, y) => ord(x) - ord(y))
+      .map(k => ({ from: POT, to: k, amt: Math.max(0, p[k].left), paid: p[k].got, total: Math.max(p[k].spent, p[k].got) }));
+  }
+  const paidOf = (f, t) => MONEY.filter(m => m.kind === "pay" && !m.done && m.payer === f && m.split && +m.split[t]).reduce((a, m) => a + (+m.amt || 0), 0);
+  const rows = transfers(balances(true)).map(x => { const paid = paidOf(x.from, x.to); return { from: x.from, to: x.to, amt: Math.max(0, x.amt - paid), paid, total: x.amt }; });
+  /* 계획 밖에서 생긴 차액(계획과 다른 송금 등)은 뒤에 붙인다 */
+  transfers(balances()).forEach(x => { if (!rows.some(r => r.from === x.from && r.to === x.to)) rows.push({ from: x.from, to: x.to, amt: x.amt, paid: 0, total: x.amt }); });
+  return rows;
+}
+/** 끝난 줄 되돌리기 = 그 두 사람 사이 송금 기록을 지운다 */
+async function undoRow(r){
+  const recs = MONEY.filter(m => m.kind === "pay" && !m.done && m.payer === r.from && m.split && +m.split[r.to]);
+  if (!recs.length) return;
+  if (!await ask({ title: "되돌릴까요?", text: teamName(r.from) + " → " + teamName(r.to) + " " + won(recs.reduce((a, m) => a + (+m.amt || 0), 0)) + "\n기록을 지우면 다시 " + (r.from === POT ? "빼 갈 돈" : "보낼 돈") + "으로 돌아와요.", ok: "되돌리기", danger: true })) return;
+  const b = db.batch(); recs.forEach(m => b.delete(T().collection("money").doc(m.id)));
+  run(b.commit(), "되돌렸어요");
 }
 const expTotal = () => MONEY.filter(m => m.kind !== "pay" && !m.done).reduce((s, m) => s + (+m.amt || 0), 0);
 const expCount = () => MONEY.filter(m => m.kind !== "pay" && !m.done).length;
@@ -1447,17 +1477,23 @@ function renderMoney(){
   /* 보낼 돈 */
   const xb = $("#mXfer"); xb.innerHTML = "";
   xb.appendChild(el("h2", "", TRIP.pot ? "🏦 공금에서 빼 갈 돈" : "💸 보낼 돈"));
-  if (!xs.length) xb.appendChild(el("p", "hint", tot ? "✓ 정산 끝 — 보낼 돈이 없어요." : "지출을 적으면 누가 누구에게 얼마 보낼지 여기에 나와요."));
-  xs.forEach(x => {
-    const r = el("div", "xfer" + (x.from === ME || x.to === ME ? " mine" : ""));
+  const rows = settleRows();
+  if (!rows.length) xb.appendChild(el("p", "hint", tot ? "✓ 정산 끝 — 보낼 돈이 없어요." : "지출을 적으면 누가 누구에게 얼마 보낼지 여기에 나와요."));
+  rows.forEach(x => {
+    const done = x.amt <= 0;
+    const r = el("div", "xfer" + (done ? " done" : "") + (x.from === ME || x.to === ME ? " mine" : ""));
     const t = el("div", "xt");
     t.appendChild(el("b", "", teamName(x.from) + " → " + teamName(x.to)));
-    t.appendChild(el("span", "amt", won(x.amt)));
+    t.appendChild(el("span", "amt", done ? "✓ " + (x.from === POT ? "빼감 " : x.to === POT ? "넣음 " : "보냄 ") + won(x.paid) : won(x.amt)));
+    if (!done && x.paid > 0) t.appendChild(el("small", "", "이미 " + won(x.paid) + (x.from === POT ? " 빼 감" : " 보냄") + " · 처음 " + won(x.total)));
     const to = teamOf(x.to);
-    if (to && to.bank) t.appendChild(el("small", "", "받는 계좌: " + to.bank));
+    if (!done && to && to.bank) t.appendChild(el("small", "", "받는 계좌: " + to.bank));
     r.appendChild(t);
-    if (to && to.bank) r.appendChild(btn("btn sm", "계좌 복사", () => copyText(to.bank.replace(/^\s*/, ""), "계좌 복사됨")));
-    r.appendChild(btn("btn primary sm", xferWord(x), () => markSent(x)));
+    if (done){ r.appendChild(btn("btn ghost sm", "되돌리기", () => undoRow(x))); }
+    else {
+      if (to && to.bank) r.appendChild(btn("btn sm", "계좌 복사", () => copyText(to.bank.replace(/^\s*/, ""), "계좌 복사됨")));
+      r.appendChild(btn("btn primary sm", xferWord(x), () => markSent(x)));
+    }
     xb.appendChild(r);
   });
   if (MFILTER && !teamOf(MFILTER)) MFILTER = "";
@@ -1467,7 +1503,7 @@ function renderMoney(){
   $("#mMine").textContent = mm ? "👥 전체 내역 보기" : "👤 내 내역만 보기";
   $("#mMine").className = "chip vbtn " + (mm ? "toall" : "tome");
   $("#mMine").hidden = !TEAMS().length;
-  const list = MONEY.filter(m => (!MFILTER || m.payer === MFILTER || (m.kind === "pay" && m.split && m.split[MFILTER]))
+  const list = MONEY.filter(m => m.kind !== "pay" && (!MFILTER || m.payer === MFILTER)
       && (!mm || m.payer === ME || (m.kind === "pay" && !!(m.split && +m.split[ME]))))   // 내가 낸 지출 · 나와 관련된 송금
     .sort((a, z) => ms(z.at) - ms(a.at));
   if (!list.length){ box.appendChild(el("div", "card empty", MONEY.length ? "해당하는 지출이 없어요." : "아직 지출이 없어요. 산 건 바로 ＋ 지출 내역 추가로!")); return; }
@@ -1528,7 +1564,8 @@ function copySettle(){
   if (TRIP.pot){ const p = potTable(); TEAMS().forEach(t => { const x = p[t.id]; if (x && x.spent) L.push("· " + t.name + " — 쓴 돈 " + won(x.spent) + (x.got ? " / 빼 감 " + won(x.got) : "")); }); }
   else TEAMS().forEach(t => { const x = b[t.id]; if (x) L.push("· " + t.name + " — 쓴 돈 " + won(x.spent) + " / 부담 " + won(x.share)); });
   L.push("");
-  if (xs.length){ L.push(TRIP.pot ? "🏦 공금에서 빼 갈 돈" : "💸 보낼 돈"); xs.forEach(x => { const to = teamOf(x.to); L.push("· " + teamName(x.from) + " → " + teamName(x.to) + " " + won(x.amt) + (to && to.bank ? "  (" + to.bank + ")" : "")); }); }
+  const rows = settleRows();
+  if (rows.some(x => x.amt > 0)){ L.push(TRIP.pot ? "🏦 공금에서 빼 갈 돈" : "💸 보낼 돈"); rows.forEach(x => { const to = teamOf(x.to); L.push("· " + teamName(x.from) + " → " + teamName(x.to) + " " + (x.amt > 0 ? won(x.amt) + (to && to.bank ? "  (" + to.bank + ")" : "") : "✓ 끝")); }); }
   else L.push("✓ 정산 끝");
   L.push("", "자세히: " + linkOf() + pinTail());
   shareLine(L.join("\n"), "정산 공지 복사됨 — 단톡방에 붙여넣으세요");
