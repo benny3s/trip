@@ -428,9 +428,13 @@
       <button class="iconbtn" type="button" data-close aria-label="닫기">✕</button></div>
     <label class="fld" style="margin-top:10px"><span>여행 이름</span><input type="text" id="n_name" maxlength="40" placeholder="예: 10월 충주 캠핑"></label>
     <div class="fld"><span>날짜</span><button class="btn datebtn" id="n_dates" type="button"></button><input type="hidden" id="n_start"><input type="hidden" id="n_end"></div>
-    <label class="fld"><span>같이 가는 사람 (선택) — 쉼표로. 부부·가족은 ‘베니네’처럼 하나로. 나중에 각자 ‘누구세요’에서 추가해도 돼요</span>
-      <input type="text" id="n_people" maxlength="120" placeholder="예: 베니"></label>
-    <div class="fld"><span>준비물 목록 — 기본 목록에서 시작</span><div class="chips wrap6" id="n_tpl"></div></div>
+    <div class="fld" id="n_fromFld"><span>지난 여행에서 가져오기 (선택)</span><div class="chips wrap6" id="n_from"></div>
+      <div class="chips wrap6" id="n_fromOpts" style="margin-top:8px" hidden></div></div>
+    <div class="fld"><span>같이 가는 사람 (선택) — 부부·가족은 ‘베니네’처럼 하나로</span>
+      <div class="row nowrap"><input type="text" id="n_mem" maxlength="12" placeholder="이름을 적고 엔터" autocomplete="off" style="flex:1 1 auto">
+        <button class="btn soft" id="n_memAdd" type="button" style="flex:0 0 auto">＋</button></div>
+      <div class="chips" id="n_memChips" style="margin-top:9px"></div></div>
+    <div class="fld"><span>준비물 목록 (선택)</span><div class="chips wrap6" id="n_tpl"></div></div>
     <label class="fld"><span>PIN (선택) — 숫자 4~8자리. 걸면 링크 + PIN 이 있어야 들어와요</span>
       <input type="text" id="n_pin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="비우면 링크만으로 들어와요"></label>
     <button class="btn primary wide" id="n_make" type="button" style="margin-top:6px">만들기 →</button>
@@ -614,7 +618,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-10h";
+const BUILD = "2026-10-10i";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -1728,26 +1732,94 @@ async function loadRef(id, teams){
     .map(x => ({ cat: x.cat || "기타", name: x.name, who: (x.who || []).filter(w => (SPECIAL.includes(w) && w !== "공통") || ppl.includes(w)), memo: x.memo || "" }));
 }
 
-/* ═══ 새 여행 ═══ */
-let nTpl = "";
+/* ═══ 새 여행 ═══
+   (2026-10-10 Benny) 준비물은 기본 '비우기' — 전엔 '캠핑' 이 미리 골라져 있어 넣은 적 없는 목록이 들어갔다.
+   사람은 약속 잡자처럼 이름 → 엔터 → 칩. 지난 여행에서 사람·계좌 / 쓸 탭·공금 / 준비물 / PIN 을 골라 가져온다 */
+let nTpl = "", nMem = [], nBank = {}, nFrom = "", nFromTrip = null;
+let nOpt = { ppl: true, set: true, items: false, pin: false };
 MODAL_OPEN.newModal = () => {
   $("#n_name").value = ""; $("#n_start").value = ""; $("#n_end").value = ""; $("#n_pin").value = ""; syncDateBtn("n");
-  $("#n_people").value = "";
-  nTpl = "camp"; drawTpl();
+  $("#n_mem").value = ""; nMem = []; nBank = {}; nFrom = ""; nFromTrip = null;
+  nOpt = { ppl: true, set: true, items: false, pin: false };
+  nTpl = ""; drawTpl(); drawNewMem(); drawFrom();
   softFocus("#n_name");
 };
 function drawTpl(){
   const box = $("#n_tpl"); box.innerHTML = "";
   [{ id: "", name: "비우기" }].concat(refSources()).forEach(o => {
-    const c = btn("chip sm", o.name, () => { nTpl = o.id; drawTpl(); }); c.setAttribute("aria-pressed", String(nTpl === o.id)); box.appendChild(c);
+    const c = btn("chip sm", o.name, () => { nTpl = o.id; if (nFrom) nOpt.items = nTpl === "t:" + nFrom; drawTpl(); drawFrom(); }); c.setAttribute("aria-pressed", String(nTpl === o.id)); box.appendChild(c);
   });
+}
+/* 사람 칩 */
+function drawNewMem(){
+  const box = $("#n_memChips"); box.innerHTML = "";
+  if (!nMem.length){ box.appendChild(el("span", "hint", "아직 없어요. 나중에 각자 ‘누구세요’에서 넣어도 돼요.")); return; }
+  nMem.forEach(n => {
+    const b = btn("chip rm", null, () => { nMem = nMem.filter(x => x !== n); drawNewMem(); });
+    b.append(el("span", "", n), el("span", "x", "×")); b.setAttribute("aria-label", n + " 빼기");
+    box.appendChild(b);
+  });
+}
+function addNewMem(v){
+  v = String(v == null ? $("#n_mem").value : v).trim().slice(0, 12);
+  if (!v) return;
+  if (nMem.includes(v)){ setStatus("이미 있는 이름이에요", "err"); return; }
+  if (nMem.length >= 12){ setStatus("12명까지예요", "err"); return; }
+  nMem.push(v); $("#n_mem").value = ""; drawNewMem();
+}
+$("#n_memAdd").onclick = () => addNewMem();
+$("#n_mem").addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing){ e.preventDefault(); addNewMem(); } });
+$("#n_mem").addEventListener("input", () => {             // 쉼표·줄바꿈으로 붙여 넣으면 나눠 넣기
+  const v = $("#n_mem").value; if (!/[,\n]/.test(v)) return;
+  $("#n_mem").value = ""; v.split(/[,\n]/).forEach(x => addNewMem(x));
+});
+/* 지난 여행에서 가져오기 */
+function drawFrom(){
+  const fb = $("#n_from"); fb.innerHTML = "";
+  const list = mine();
+  $("#n_fromFld").hidden = !list.length;
+  [{ id: "", name: "안 가져옴" }].concat(list.map(m => ({ id: m.id, name: "📋 " + m.name }))).forEach(o => {
+    const c = btn("chip sm", o.name, () => pickFrom(o.id)); c.setAttribute("aria-pressed", String(nFrom === o.id)); fb.appendChild(c);
+  });
+  const ob = $("#n_fromOpts"); ob.innerHTML = ""; ob.hidden = !nFrom;
+  if (!nFrom) return;
+  const pinKnown = !!ls("tr_pin:" + nFrom);
+  [["ppl", "사람·계좌"], ["set", "쓸 탭·공금 설정"], ["items", "준비물"], ["pin", pinKnown ? "같은 PIN" : "같은 PIN (이 기기는 몰라요)"]].forEach(([k, lab]) => {
+    const c = btn("chip sm", (nOpt[k] ? "☑ " : "☐ ") + lab, () => {
+      if (k === "pin" && !pinKnown) return;
+      nOpt[k] = !nOpt[k]; applyFrom(); drawFrom();
+    });
+    c.setAttribute("aria-pressed", String(!!nOpt[k])); ob.appendChild(c);
+  });
+}
+async function pickFrom(pid){
+  nFrom = pid; nFromTrip = null;
+  if (pid){
+    const k = ls("tr_key:" + pid) || await keyOf(pid, "");
+    const d = await C("trips").doc(k).get().catch(() => null);
+    nFromTrip = d && d.exists ? d.data() : null;
+    if (!nFromTrip){ setStatus("그 여행을 못 읽었어요 — 이 기기에서 한 번 열어 주세요", "err"); nFrom = ""; }
+  }
+  applyFrom(); drawFrom();
+}
+/* 고른 것 반영 — 사람(이름 칩·계좌), 준비물(목록 고르기), PIN(칸 채우기) */
+function applyFrom(){
+  const t = nFromTrip;
+  if (t && nOpt.ppl){ (t.teams || []).forEach(x => { if (!nMem.includes(x.name) && nMem.length < 12) nMem.push(x.name); if (x.bank) nBank[x.name] = x.bank; }); }
+  if (t && !nOpt.ppl){ const names = (t.teams || []).map(x => x.name); nMem = nMem.filter(n => !names.includes(n)); nBank = {}; }
+  if (nFrom){ if (nOpt.items) nTpl = "t:" + nFrom; else if (nTpl === "t:" + nFrom) nTpl = ""; }
+  $("#n_pin").value = nFrom && nOpt.pin ? ls("tr_pin:" + nFrom) : ($("#n_pin").value === ls("tr_pin:" + nFrom) ? "" : $("#n_pin").value);
+  drawNewMem(); drawTpl();
 }
 $("#n_make").onclick = async () => {
   const name = $("#n_name").value.trim(), start = $("#n_start").value, end = $("#n_end").value || start, pin = $("#n_pin").value.trim();
   if (!name){ setStatus("여행 이름을 적어주세요", "err"); return; }
   if (start && end < start){ setStatus("끝나는 날이 시작보다 앞이에요", "err"); return; }
   if (pin && !pinOk(pin)){ setStatus("PIN 은 숫자 4~8자리예요", "err"); return; }
-  const teams = namesToTeams($("#n_people").value);
+  if ($("#n_mem").value.trim()) addNewMem();                 // 적어 두고 엔터를 안 누른 이름도
+  const teams = nMem.map(n => ({ id: "t" + rid(6), name: n, people: [n], bank: nBank[n] || "" }));
+  const extra = {};
+  if (nFromTrip && nOpt.set){ if (nFromTrip.pot) extra.pot = true; if ((nFromTrip.tabsOff || []).length) extra.tabsOff = nFromTrip.tabsOff.slice(); }
   $("#n_make").disabled = true;
   try {
     const items = (await loadRef(nTpl, teams)) || [];
@@ -1755,7 +1827,7 @@ $("#n_make").onclick = async () => {
     const pid = rid(20), k = await keyOf(pid, pin);
     const b0 = db.batch();
     b0.set(C("tripIdx").doc(pid), { name, locked: !!pin, start: start || "", createdAt: TSV(), updatedAt: TSV() });
-    b0.set(C("trips").doc(k), { pid, name, start, end, place: "", addr: "", phone: "", teams, cats, createdAt: TSV(), updatedAt: TSV() });
+    b0.set(C("trips").doc(k), Object.assign({ pid, name, start, end, place: "", addr: "", phone: "", teams, cats, createdAt: TSV(), updatedAt: TSV() }, extra));
     await b0.commit();
     for (let i = 0; i < items.length; i += 100){
       const b = db.batch();
@@ -1764,64 +1836,10 @@ $("#n_make").onclick = async () => {
     }
     ls("tr_key:" + pid, k); ls("tr_pin:" + pid, pin || ""); mineAdd(pid, name, start);
     closeModal("newModal");
-    afterBack(() => { TAB = "info"; ls("tr_tab", TAB); openTrip(pid); setStatus("만들었어요! 🔗 단톡방에 공유로 링크를 보내세요" + (pin ? " (PIN 은 따로)" : ""), "ok"); });
+    const first = extra.tabsOff && extra.tabsOff.includes("info") ? (["pack", "money"].find(t => !extra.tabsOff.includes(t)) || "money") : "info";
+    afterBack(() => { TAB = first; ls("tr_tab", TAB); openTrip(pid); setStatus("만들었어요! 🔗 공유로 링크를 보내세요", "ok"); });
   } catch(e){ setStatus("실패 — " + errText(e), "err"); }
   finally { $("#n_make").disabled = false; }
-};
-
-/* ═══ 지금 여행에 레퍼런스에서 가져오기 — 이미 있는 이름은 빼고, 골라서 ═══ */
-let rfSrc = "", rfItems = [];
-MODAL_OPEN.refModal = () => { rfSrc = ""; rfItems = []; drawRef(); };
-$("#refBtn").onclick = () => openModal("refModal");
-async function pickRef(id){
-  rfSrc = id; rfItems = []; drawRef();
-  $("#r_hint").textContent = "불러오는 중…";
-  const a = await loadRef(id, TEAMS());
-  if (rfSrc !== id) return;
-  if (!a || !a.length){ $("#r_hint").textContent = "가져올 준비물이 없어요. PIN 걸린 여행은 이 기기에서 한 번 열어야 가져올 수 있어요."; return; }
-  const have = new Set(ITEMS.map(x => x.name.replace(/\s/g, "")));
-  rfItems = a.map(x => Object.assign(x, { have: have.has(x.name.replace(/\s/g, "")) })).map(x => Object.assign(x, { sel: !x.have }));
-  drawRef();
-}
-function drawRef(){
-  const sb = $("#r_src"); sb.innerHTML = "";
-  refSources().forEach(o => { const c = btn("chip sm", o.name, () => pickRef(o.id)); c.setAttribute("aria-pressed", String(rfSrc === o.id)); sb.appendChild(c); });
-  const box = $("#r_list"); box.innerHTML = "";
-  const n = rfItems.filter(x => x.sel).length;
-  $("#r_go").textContent = n ? n + "개 가져오기" : "가져오기"; $("#r_go").disabled = !n;
-  if (!rfSrc){ $("#r_hint").textContent = "어떤 목록에서 가져올까요?"; return; }
-  if (!rfItems.length) return;
-  $("#r_hint").textContent = "초록 ✓ = 가져올 것 (눌러서 빼거나 넣기) · 회색 ✓ = 이미 있어요";
-  const cats = []; rfItems.forEach(x => { if (!cats.includes(x.cat)) cats.push(x.cat); });
-  cats.forEach(cat => {
-    const list = rfItems.filter(x => x.cat === cat), avail = list.filter(x => !x.have), sel = avail.filter(x => x.sel).length;
-    const h = el("div", "rcat");
-    h.append(el("b", "", cat), el("small", "", sel + "개 고름 · " + list.length + "개 중"));
-    if (avail.length){ const all = sel === avail.length; h.appendChild(btn("", all ? "전부 풀기" : "전부 고르기", () => { avail.forEach(x => x.sel = !all); drawRef(); })); }
-    box.appendChild(h);
-    const cw = el("div", "rchips");
-    list.forEach(x => {
-      const c = btn("rchip" + (x.have ? " have" : (x.sel ? " on" : "")), x.name, () => { if (x.have) return; x.sel = !x.sel; drawRef(); });
-      c.setAttribute("aria-pressed", String(!!x.sel || x.have));
-      if (x.have){ c.disabled = true; c.title = "이미 있어요"; }
-      cw.appendChild(c);
-    });
-    box.appendChild(cw);
-  });
-}
-$("#r_go").onclick = () => {
-  const pick = rfItems.filter(x => x.sel); if (!pick.length) return;
-  closeModal("refModal");
-  let ord = ITEMS.reduce((m, x) => Math.max(m, x.ord || 0), 0);
-  const cats = (TRIP.cats || []).slice(); pick.forEach(x => { if (!cats.includes(x.cat)) cats.push(x.cat); });
-  run((async () => {
-    for (let i = 0; i < pick.length; i += 100){
-      const b = db.batch();
-      pick.slice(i, i + 100).forEach(x => b.set(T().collection("items").doc(), { cat: x.cat, name: x.name, who: x.who, memo: x.memo, ord: ++ord, st: {}, at: TSV() }));
-      if (i === 0) b.update(T(), { cats, updatedAt: TSV() });
-      await b.commit();
-    }
-  })(), pick.length + "개 가져왔어요");
 };
 
 /* ═══ 여행 설정 ═══ */
