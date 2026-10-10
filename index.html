@@ -434,7 +434,8 @@
       <div class="row nowrap"><input type="text" id="n_mem" maxlength="12" placeholder="이름을 적고 엔터" autocomplete="off" style="flex:1 1 auto">
         <button class="btn soft" id="n_memAdd" type="button" style="flex:0 0 auto">＋</button></div>
       <div class="chips" id="n_memChips" style="margin-top:9px"></div></div>
-    <div class="fld"><span>준비물 목록 (선택)</span><div class="chips wrap6" id="n_tpl"></div></div>
+    <div class="fld"><span>준비물 목록 (선택)</span><div class="chips wrap6" id="n_tpl"></div>
+      <button class="btn ghost sm" id="n_tplPick" type="button" style="margin-top:4px;padding-left:2px;color:var(--accent);font-weight:700" hidden></button></div>
     <label class="fld"><span>PIN (선택) — 숫자 4~8자리. 걸면 링크 + PIN 이 있어야 들어와요</span>
       <input type="text" id="n_pin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="비우면 링크만으로 들어와요"></label>
     <button class="btn primary wide" id="n_make" type="button" style="margin-top:6px">만들기 →</button>
@@ -618,7 +619,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-10i";
+const BUILD = "2026-10-10j";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -1736,19 +1737,28 @@ async function loadRef(id, teams){
    (2026-10-10 Benny) 준비물은 기본 '비우기' — 전엔 '캠핑' 이 미리 골라져 있어 넣은 적 없는 목록이 들어갔다.
    사람은 약속 잡자처럼 이름 → 엔터 → 칩. 지난 여행에서 사람·계좌 / 쓸 탭·공금 / 준비물 / PIN 을 골라 가져온다 */
 let nTpl = "", nMem = [], nBank = {}, nFrom = "", nFromTrip = null;
+let nPicked = null, nPickedOf = "";                 // '골라서 가져오기' 로 고른 준비물 (cat|name) — 목록을 바꾸면 풀린다
+const pickKey = x => (x.cat || "기타") + "|" + x.name;
 let nOpt = { ppl: true, set: true, items: false, pin: false };
 MODAL_OPEN.newModal = () => {
   $("#n_name").value = ""; $("#n_start").value = ""; $("#n_end").value = ""; $("#n_pin").value = ""; syncDateBtn("n");
   $("#n_mem").value = ""; nMem = []; nBank = {}; nFrom = ""; nFromTrip = null;
   nOpt = { ppl: true, set: true, items: false, pin: false };
-  nTpl = ""; drawTpl(); drawNewMem(); drawFrom();
+  nTpl = ""; nPicked = null; nPickedOf = ""; drawTpl(); drawNewMem(); drawFrom();
   softFocus("#n_name");
 };
 function drawTpl(){
+  if (nPickedOf !== nTpl){ nPicked = null; nPickedOf = ""; }
   const box = $("#n_tpl"); box.innerHTML = "";
   [{ id: "", name: "비우기" }].concat(refSources()).forEach(o => {
     const c = btn("chip sm", o.name, () => { nTpl = o.id; if (nFrom) nOpt.items = nTpl === "t:" + nFrom; drawTpl(); drawFrom(); }); c.setAttribute("aria-pressed", String(nTpl === o.id)); box.appendChild(c);
   });
+  /* 전부 / 골라서 */
+  const pb = $("#n_tplPick"); pb.hidden = !nTpl;
+  if (nTpl){
+    pb.textContent = nPicked ? "✓ " + nPicked.size + "개 골라 둠 · 다시 고르기" : "전부 가져와요 · ✎ 골라서 가져오기";
+    pb.onclick = async () => { rfMode = "new"; rfSrc = nTpl; rfItems = []; openModal("refModal"); await pickRef(nTpl); };
+  }
 }
 /* 사람 칩 */
 function drawNewMem(){
@@ -1822,7 +1832,8 @@ $("#n_make").onclick = async () => {
   if (nFromTrip && nOpt.set){ if (nFromTrip.pot) extra.pot = true; if ((nFromTrip.tabsOff || []).length) extra.tabsOff = nFromTrip.tabsOff.slice(); }
   $("#n_make").disabled = true;
   try {
-    const items = (await loadRef(nTpl, teams)) || [];
+    let items = (await loadRef(nTpl, teams)) || [];
+    if (nPicked && nPickedOf === nTpl) items = items.filter(x => nPicked.has(pickKey(x)));      // 골라서 가져오기
     const cats = []; items.forEach(x => { if (!cats.includes(x.cat)) cats.push(x.cat); });
     const pid = rid(20), k = await keyOf(pid, pin);
     const b0 = db.batch();
@@ -1840,6 +1851,67 @@ $("#n_make").onclick = async () => {
     afterBack(() => { TAB = first; ls("tr_tab", TAB); openTrip(pid); setStatus("만들었어요! 🔗 공유로 링크를 보내세요", "ok"); });
   } catch(e){ setStatus("실패 — " + errText(e), "err"); }
   finally { $("#n_make").disabled = false; }
+};
+
+/* ═══ 지금 여행에 레퍼런스에서 가져오기 — 이미 있는 이름은 빼고, 골라서 ═══ */
+let rfSrc = "", rfItems = [], rfMode = "add";
+MODAL_OPEN.refModal = () => { if (rfMode !== "new"){ rfSrc = ""; rfItems = []; } drawRef(); };
+MODAL_AFTER.refModal = () => { rfMode = "add"; };
+$("#refBtn").onclick = () => { rfMode = "add"; openModal("refModal"); };
+async function pickRef(id){
+  rfSrc = id; rfItems = []; drawRef();
+  $("#r_hint").textContent = "불러오는 중…";
+  const a = await loadRef(id, rfMode === "new" ? nMem.map(n => ({ name: n })) : TEAMS());
+  if (rfSrc !== id) return;
+  if (!a || !a.length){ $("#r_hint").textContent = "가져올 준비물이 없어요. PIN 걸린 여행은 이 기기에서 한 번 열어야 가져올 수 있어요."; return; }
+  const have = new Set(rfMode === "new" ? [] : ITEMS.map(x => x.name.replace(/\s/g, "")));
+  rfItems = a.map(x => Object.assign(x, { have: have.has(x.name.replace(/\s/g, "")) })).map(x => Object.assign(x, { sel: rfMode === "new" && nPicked ? nPicked.has(pickKey(x)) : !x.have }));
+  drawRef();
+}
+function drawRef(){
+  const sb = $("#r_src"); sb.innerHTML = ""; sb.hidden = rfMode === "new";      // 새 여행용은 고른 목록 하나만
+  $("#refModal h2").textContent = rfMode === "new" ? "가져올 준비물 고르기" : "기본 목록에서 추가";
+  refSources().forEach(o => { const c = btn("chip sm", o.name, () => pickRef(o.id)); c.setAttribute("aria-pressed", String(rfSrc === o.id)); sb.appendChild(c); });
+  const box = $("#r_list"); box.innerHTML = "";
+  const n = rfItems.filter(x => x.sel).length;
+  $("#r_go").textContent = rfMode === "new" ? (n + "개 고르기") : (n ? n + "개 가져오기" : "가져오기"); $("#r_go").disabled = !n && rfMode !== "new";
+  if (!rfSrc){ $("#r_hint").textContent = "어떤 목록에서 가져올까요?"; return; }
+  if (!rfItems.length) return;
+  $("#r_hint").textContent = rfMode === "new" ? "초록 ✓ = 가져갈 것 · 눌러서 빼거나 넣기" : "초록 ✓ = 가져올 것 (눌러서 빼거나 넣기) · 회색 ✓ = 이미 있어요";
+  const cats = []; rfItems.forEach(x => { if (!cats.includes(x.cat)) cats.push(x.cat); });
+  cats.forEach(cat => {
+    const list = rfItems.filter(x => x.cat === cat), avail = list.filter(x => !x.have), sel = avail.filter(x => x.sel).length;
+    const h = el("div", "rcat");
+    h.append(el("b", "", cat), el("small", "", sel + "개 고름 · " + list.length + "개 중"));
+    if (avail.length){ const all = sel === avail.length; h.appendChild(btn("", all ? "전부 풀기" : "전부 고르기", () => { avail.forEach(x => x.sel = !all); drawRef(); })); }
+    box.appendChild(h);
+    const cw = el("div", "rchips");
+    list.forEach(x => {
+      const c = btn("rchip" + (x.have ? " have" : (x.sel ? " on" : "")), x.name, () => { if (x.have) return; x.sel = !x.sel; drawRef(); });
+      c.setAttribute("aria-pressed", String(!!x.sel || x.have));
+      if (x.have){ c.disabled = true; c.title = "이미 있어요"; }
+      cw.appendChild(c);
+    });
+    box.appendChild(cw);
+  });
+}
+$("#r_go").onclick = () => {
+  if (rfMode === "new"){                               // 새 여행 — 고른 것만 기억해 두고 창 닫기
+    nPicked = new Set(rfItems.filter(x => x.sel).map(pickKey)); nPickedOf = nTpl;
+    closeModal("refModal"); drawTpl(); return;
+  }
+  const pick = rfItems.filter(x => x.sel); if (!pick.length) return;
+  closeModal("refModal");
+  let ord = ITEMS.reduce((m, x) => Math.max(m, x.ord || 0), 0);
+  const cats = (TRIP.cats || []).slice(); pick.forEach(x => { if (!cats.includes(x.cat)) cats.push(x.cat); });
+  run((async () => {
+    for (let i = 0; i < pick.length; i += 100){
+      const b = db.batch();
+      pick.slice(i, i + 100).forEach(x => b.set(T().collection("items").doc(), { cat: x.cat, name: x.name, who: x.who, memo: x.memo, ord: ++ord, st: {}, at: TSV() }));
+      if (i === 0) b.update(T(), { cats, updatedAt: TSV() });
+      await b.commit();
+    }
+  })(), pick.length + "개 가져왔어요");
 };
 
 /* ═══ 여행 설정 ═══ */
