@@ -294,7 +294,8 @@
       <li><b>💰 정산</b> — 산 건 바로 적고, 누가 누구에게 얼마 보낼지 자동 계산</li>
     </ul>
     <button class="btn primary wide" id="homeNew" type="button">＋ 새 여행 만들기</button>
-    <button class="btn wide" id="homeAll" type="button" style="margin-top:8px;height:48px;font-size:14.5px">🔎 등록된 여행 찾기</button>
+    <!-- 등록된 여행 찾기(전체 목록)는 없앰 — 링크로만 들어온다 (2026-10-26 보안) -->
+    <p class="hint" style="margin:8px 0 0;text-align:center">다른 여행은 받은 링크로 들어와요.</p>
   </div>
   <div class="card" id="homeMine" hidden>
     <h2 style="margin:0 0 4px">이 기기에서 연 여행</h2>
@@ -395,7 +396,7 @@
       </span>
     </div>
     <button class="btn primary" id="newBtn" type="button" style="width:100%;margin-top:12px">＋ 새 여행 만들기</button>
-    <button class="btn" id="allBtn" type="button" style="width:100%;margin-top:8px">🔎 등록된 여행 찾기</button>
+    <p class="hint" style="margin:8px 0 0">다른 여행은 받은 링크로 들어와요.</p>
     <button class="btn soft" id="introBtn" type="button" style="width:100%;margin-top:8px">📣 여행 가자 소개하기</button>
     <div id="mineWrap" hidden>
       <div class="mine-h"><span>이 기기에서 연 여행</span><span>✕ = 이 기기에서만 지우기</span></div>
@@ -616,7 +617,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-10k";
+const BUILD = "2026-10-26a";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -2044,7 +2045,8 @@ $("#rgClear").onclick = () => { rgA = rgB = ""; rgStep = 0; applyRange(); closeM
 $("#n_dates").onclick = () => openRange("n");
 $("#s_dates").onclick = () => openRange("s");
 
-/* ═══ 등록된 여행 — tripIdx 전체 (최근 것 위) ═══ */
+/* ═══ 등록된 여행 — tripIdx 전체 (최근 것 위) ═══
+   2026-10-26 링크 전용: 서버 규칙이 전체 목록 조회를 막아 이 창은 더 이상 열리지 않는다(버튼 없앰) */
 let ALL = [];
 async function loadAll(){
   const box = $("#allList"); box.innerHTML = '<p class="hint">불러오는 중…</p>';
@@ -2057,8 +2059,6 @@ async function loadAll(){
   ALL.forEach(x => box.appendChild(tripRow({ id: x.id, name: (x.locked ? "🔒 " : "") + x.name, start: x.start || "" }, null, "allModal")));
 }
 MODAL_OPEN.allModal = () => { loadAll(); };
-$("#allBtn").onclick = () => { closeModal("pickModal"); afterBack(() => openModal("allModal")); };
-$("#homeAll").onclick = () => openModal("allModal");
 
 /* ═══ 고르기 · 공유 ═══ */
 function tripRow(x, onDel, inModal){
