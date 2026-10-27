@@ -382,7 +382,9 @@
 </section>
 
 <footer id="foot"></footer>
-<p class="more"><a href="https://benny3s.github.io/" target="_blank" rel="noopener">🧭 개발자의 다른 프로젝트도 구경하기 →</a></p>
+<!-- 🧭 다른 프로젝트는 Benny(포털 관리자 모드 켠 기기)만 — 친구는 받은 링크의 앱만 (2026-10-27 Benny, 밴드매니저·Music Lab 과 같이) -->
+<p class="more" style="display:none"><a href="https://benny3s.github.io/" target="_blank" rel="noopener">🧭 개발자의 다른 프로젝트도 구경하기 →</a></p>
+<script>try { if (localStorage.getItem("bennyAdminAt")) document.currentScript.previousElementSibling.style.display = ""; } catch(e){}</script>
 </div>
 
 <!-- ══════════ 여행 고르기 ══════════ -->
@@ -617,7 +619,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-26a";
+const BUILD = "2026-10-27a";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
