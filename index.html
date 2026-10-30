@@ -604,7 +604,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="../when/core.js?v=2026-10-08f"></script>
+<script src="../when/core.js?v=2026-10-30a"></script>
 <script>/* 여행 가자 — benny3s.github.io/trip/  (2026-10-09)
    시작: 캠핑 구글 시트(준비물·부부별 지출·공지)가 불편했던 세 가지
      ① 짐 쌀 때 체크 + 차에 실을 때 체크를 엑셀 한 칸으로 하다 보니 자꾸 빠뜨림 → 버튼 하나 세 단계: 0 아직 → 1 준비 → 2 챙김
@@ -619,7 +619,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-27a";
+const BUILD = "2026-10-30a";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -776,7 +776,7 @@ async function run(p, okMsg){
 /* ═══ 화면 ═══ */
 function renderAll(){
   const has = !!(TID && TRIP);
-  $("#foot").textContent = "여행 가자 " + BUILD;
+  $("#foot").textContent = "여행 가자 " + BUILD + (typeof isAdminMode === "function" && isAdminMode() ? " · 관리자" : "");
   const locked = !has && !!PID && !!LOCK && !opening;
   $("#view-trip").hidden = !has;
   $("#view-lock").hidden = !locked;
@@ -1863,6 +1863,7 @@ $("#n_make").onclick = async () => {
       await b.commit();
     }
     ls("tr_key:" + pid, k); ls("tr_pin:" + pid, pin || ""); mineAdd(pid, name, start);
+    if (typeof adminTrack === "function") adminTrack("trips", pid);
     closeModal("newModal");
     const first = extra.tabsOff && extra.tabsOff.includes("info") ? (["pack", "money"].find(t => !extra.tabsOff.includes(t)) || "money") : "info";
     afterBack(() => { TAB = first; ls("tr_tab", TAB); openTrip(pid); setStatus("만들었어요! 🔗 공유로 링크를 보내세요", "ok"); });
@@ -2001,7 +2002,11 @@ $("#s_delete").onclick = async () => {
     await C("tripIdx").doc(pid).delete();
   })(), "여행을 지웠어요");
   MOVING = false;
-  if (ok){ ls("tr_mine", JSON.stringify(mine().filter(m => m.id !== pid))); ls("tr_me:" + pid, ""); ls("tr_key:" + pid, ""); goHome(); }
+  if (ok){
+    ls("tr_mine", JSON.stringify(mine().filter(m => m.id !== pid))); ls("tr_me:" + pid, ""); ls("tr_key:" + pid, "");
+    if (typeof adminUntrack === "function") adminUntrack("trips", pid);
+    goHome();
+  }
 };
 
 /* ═══ 날짜 고르기 — 가는 날 한 번, 오는 날 한 번 (당일이면 같은 날 두 번). 지난 날짜도 됨(다녀온 여행 기록) ═══ */
@@ -2100,8 +2105,29 @@ $("#titleBtn").onclick = () => location.reload();
 function onNavPop(){}
 
 /* ═══ 시작 ═══ */
+async function syncAdminTrips(){
+  if (typeof adminList !== "function") return;
+  const adm = await adminList("trips");
+  if (!adm || !adm.length) return;
+  const cur = mine(), seen = new Set(cur.map(x => x.id));
+  const missing = adm.filter(id => id && !seen.has(id));
+  if (missing.length){
+    const docs = await Promise.all(missing.map(id => C("tripIdx").doc(id).get().catch(() => null)));
+    docs.forEach(s => {
+      if (s && s.exists){
+        const d = s.data() || {};
+        cur.push({ id: s.id, name: d.name || "여행", start: d.start || "" });
+      }
+    });
+    ls("tr_mine", JSON.stringify(cur.slice(0, 50)));
+  }
+  if (typeof applyAdminUi === "function") applyAdminUi();
+  renderAll();
+  if (!$("#pickModal").hidden) renderPick();
+}
 if (!FB_OK) setStatus("저장소를 불러오지 못했어요 — 네트워크를 확인하고 새로고침해 주세요", "err");
 else {
+  syncAdminTrips();
   const q = new URLSearchParams(location.search).get("t");
   if (q) openTrip(q);
   renderAll();
