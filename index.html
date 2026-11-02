@@ -1580,7 +1580,7 @@ async function askSharePin(){
 async function copySettle(){
   if (IDX && IDX.locked && !SPIN){ await askSharePin(); return; }
   /* 형식 (2026-10-10 Benny 가 직접 정함):
-     [일고 정산] / 총 지출 412,100원 (12건) / (빈 줄) / 🏦 공금에서 빼 갈 돈 / · 🏦 공금 → 명재 59,700원 … / (빈 줄) / 링크 (PIN : 0303) / 주소 */
+     [여행 정산] / 총 지출 100,000원 (5건) / (빈 줄) / 🏦 공금에서 빼 갈 돈 / · 🏦 공금 → 이름 10,000원 … / (빈 줄) / 링크 (PIN : 숫자) / 주소 */
   const L = ["[" + TRIP.name + " 정산]", "총 지출 " + won(expTotal()) + " (" + expCount() + "건)" + doneNote(), ""];
   const rows = settleRows();
   if (rows.length){
