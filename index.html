@@ -228,9 +228,6 @@
 .cal .d.mid{background:rgba(var(--accent-rgb),.14);border-color:rgba(var(--accent-rgb),.28)}
 .cal .d.sun{color:var(--warn)} .cal .d.sat{color:#3a6fb0}
 .cal .d.on{color:var(--on-accent)}
-/* 🔒 PIN */
-.lockcard{text-align:center;padding:30px 18px}
-.lockcard input{max-width:180px;text-align:center;letter-spacing:.3em;margin:0 auto}
 /* 일정 줄 — 담당·할 일 */
 .prl .pw{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;align-items:center}
 .prl .pm{font-size:12.5px;color:var(--muted);white-space:pre-wrap}
@@ -298,19 +295,8 @@
     <p class="hint" style="margin:8px 0 0;text-align:center">다른 여행은 받은 링크로 들어와요.</p>
   </div>
   <div class="card" id="homeMine" hidden>
-    <h2 style="margin:0 0 4px">이 기기에서 연 여행</h2>
+    <h2 style="margin:0 0 4px" id="homeMineH">이 기기에서 연 여행</h2>
     <div class="list" id="homeMineList"></div>
-  </div>
-</section>
-
-<!-- 🔒 PIN 이 걸린 여행 — 기기마다 한 번 -->
-<section id="view-lock" hidden>
-  <div class="card lockcard">
-    <div style="font-size:30px">🔒</div>
-    <h2 style="margin:6px 0 2px" id="lockName"></h2>
-    <p class="hint" style="margin:0 0 16px" id="lockHint">PIN 을 넣어주세요. 이 기기에선 한 번만 넣으면 돼요.</p>
-    <input type="text" id="lockPin" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="PIN">
-    <button class="btn primary wide" id="lockGo" type="button" style="margin-top:12px">들어가기</button>
   </div>
 </section>
 
@@ -401,7 +387,7 @@
     <p class="hint" style="margin:8px 0 0">다른 여행은 받은 링크로 들어와요.</p>
     <button class="btn soft" id="introBtn" type="button" style="width:100%;margin-top:8px">📣 여행 가자 소개하기</button>
     <div id="mineWrap" hidden>
-      <div class="mine-h"><span>이 기기에서 연 여행</span><span>✕ = 이 기기에서만 지우기</span></div>
+      <div class="mine-h"><span id="mineH">이 기기에서 연 여행</span><span>✕ = 이 기기에서만 지우기</span></div>
       <div class="list" id="mineList"></div>
     </div>
   </div>
@@ -435,8 +421,6 @@
       <div class="chips" id="n_memChips" style="margin-top:9px"></div></div>
     <div class="fld"><span>준비물 목록 (선택)</span><div class="chips wrap6" id="n_tpl"></div>
       <button class="btn ghost sm" id="n_tplPick" type="button" style="margin-top:4px;padding-left:2px;color:var(--accent);font-weight:700" hidden></button></div>
-    <label class="fld"><span>PIN (선택) — 숫자 4~8자리. 걸면 링크 + PIN 이 있어야 들어와요</span>
-      <input type="text" id="n_pin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="비우면 링크만으로 들어와요"></label>
     <button class="btn primary wide" id="n_make" type="button" style="margin-top:6px">만들기 →</button>
   </div>
 </div>
@@ -531,9 +515,6 @@
       <div class="chips" id="s_memChips" style="margin-top:9px"></div></div>
     <div class="fld"><span>쓸 탭 — 끈 탭은 회색으로 잠겨요</span><div class="chips wrap6" id="s_tabs"></div></div>
     <button class="btn primary wide" id="s_save" type="button">저장</button>
-    <div class="fld" style="margin-top:18px"><span id="s_pinLbl">PIN</span>
-      <div class="row nowrap"><input type="text" id="s_pin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="새 PIN (비우면 해제)" style="flex:1 1 auto">
-        <button class="btn" id="s_pinSave" type="button">바꾸기</button></div></div>
     <details class="nmore" style="margin-top:14px">
       <summary>여행 지우기</summary>
       <p class="hint">공지·준비물·정산까지 전부 지워지고 되돌릴 수 없어요. 링크를 가진 모두에게서 사라져요.</p>
@@ -554,16 +535,6 @@
       <button class="btn ghost" id="rgClear" type="button">날짜 지우기</button>
       <button class="btn primary" id="rgOk" type="button">확인</button>
     </div>
-  </div>
-</div>
-
-<!-- ══════════ 등록된 여행 — 약속 잡자·밴드매니저처럼 목록은 누구나, 🔒 는 PIN ══════════ -->
-<div class="modal" id="allModal" hidden>
-  <div class="sheet tall" role="dialog" aria-modal="true">
-    <div class="spread"><h2 style="margin:0">등록된 여행</h2>
-      <button class="btn ghost" type="button" data-close>닫기</button></div>
-    <p class="hint" style="margin:6px 0 0">🔒 = PIN 을 아는 사람만 들어가요</p>
-    <div class="list" id="allList" style="margin-top:10px"></div>
   </div>
 </div>
 
@@ -611,15 +582,15 @@
      ② 추가 구매를 바로 적기 어렵고 누가 누구에게 보낼지 계산이 힘듦 → ＋ 지출 적기 · 보낼 돈 자동 · 보냈어요 = 송금 기록
      ③ 공지·일정이 한눈에 안 들어옴 → 일정 타임라인 + 공지 카드, 누구나 고침
    저장 (규칙: secretary/benny-apps/firestore.rules '여행 가자')
-     tripIdx/{pid}                링크(?t=pid) — 이름·🔒 만
-     trips/{K}                    K = sha256(pid + ":" + PIN) (PIN 없으면 빈 PIN) — 밴드매니저와 같은 선택 PIN
+     tripIdx/{pid}                링크(?t=pid) — 이름·시작 날짜 (locked 는 규칙 때문에 남겨 둔 칸, 늘 false)
+     trips/{K}                    K = sha256(pid + ":") — 2026-11-03 PIN 없앰 (Benny: 링크로만). 경로는 옛 빈 PIN 자리 그대로
                                   pid·이름·날짜·장소·주소·연락처·teams[{id,name,people,bank}]·cats
        /items/{iid}               준비물 {cat,name,who[],memo,ord,st{팀id|"_": 0 아직·1 준비·2 챙김}}
        /money/{mid}               {kind exp|pay, title, amt, payer 팀id, split{팀id: 몫}, memo}
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
-   목록 없음 — 링크를 아는 사람만. 이 기기: tr_mine(연 여행) · tr_key:<pid>(열쇠) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-10-30a";
+   목록 없음 — 링크를 아는 사람만. 관리자 기기엔 전체 목록(adminIdx). 이 기기: tr_mine(연 여행) · tr_me:<pid>(우리 팀) */
+const BUILD = "2026-11-03a";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
@@ -631,8 +602,7 @@ const C = n => db.collection(n);
 const T = () => C("trips").doc(TID);
 const SUBS = ["items", "money", "notes", "plan"];
 async function sha256(t){ const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)); return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, "0")).join(""); }
-const keyOf = (pid, pin) => sha256(pid + ":" + (pin || ""));
-const pinOk = p => /^\d{4,8}$/.test(p);
+const keyOf = pid => sha256(pid + ":");
 /* 창을 열 때 커서 넣기는 PC 에서만 — 폰은 키보드가 올라와 분류·누가 칩을 가린다 (2026-10-09 Benny: "목록 고치기 누르면 키보드 올라오는 거 불편") */
 const TOUCH = !!(window.matchMedia && matchMedia("(pointer: coarse)").matches);
 function softFocus(sel){ if (!TOUCH) setTimeout(() => { try { $(sel).focus(); } catch(e){} }, 80); }
@@ -643,7 +613,7 @@ function daysBetween(a, b){ return Math.round((dObj(b) - dObj(a)) / 864e5); }
 function addDays(d, n){ const o = dObj(d); o.setDate(o.getDate() + n); return iso(o); }
 
 /* ── 상태 ── */
-let PID = "", IDX = null, LOCK = "";               // 링크 id · tripIdx 문서 · 잠금 화면 안내 글 (있으면 잠금 화면)
+let PID = "", IDX = null;                          // 링크 id · tripIdx 문서
 let TID = "", TRIP = null, ITEMS = [], MONEY = [], NOTES = [], PLAN = [], unsub = [];
 let ME = "";                                       // 이 기기의 팀 id
 let TAB = ls("tr_tab") || "info";
@@ -681,7 +651,7 @@ function whoShown(w){
 
 /* ── 이 기기에서 연 여행 ── */
 function mine(){ try { const a = JSON.parse(ls("tr_mine") || "[]"); return Array.isArray(a) ? a.filter(x => x && x.id) : []; } catch(e){ return []; } }
-function mineAdd(id, name, start){ const a = mine().filter(x => x.id !== id); a.unshift({ id, name: name || "여행", start: start || "" }); ls("tr_mine", JSON.stringify(a.slice(0, 30))); }
+function mineAdd(id, name, start){ const a = mine().filter(x => x.id !== id); a.unshift({ id, name: name || "여행", start: start || "" }); ls("tr_mine", JSON.stringify(a.slice(0, 200))); }
 async function mineForget(id){
   const x = mine().find(m => m.id === id);
   if (!await ask({ title: "이 기기 목록에서 지울까요?", text: "‘" + (x ? x.name : "이 여행") + "’ — 여행은 그대로 있어요. 다시 보려면 링크로 들어오면 돼요.", ok: "지우기" })) return;
@@ -690,56 +660,36 @@ async function mineForget(id){
 }
 
 /* ═══ 열기 · 지켜보기 ═══
-   링크 pid → tripIdx 확인 → 열쇠 K (기억해 둔 것 / PIN 으로 / PIN 없으면 빈 PIN) → trips/K 구독 */
+   링크 pid → tripIdx 확인 → trips/K 구독 */
 function closeTrip(){ unsub.forEach(f => { try { f(); } catch(e){} }); unsub = []; TID = ""; TRIP = null; ITEMS = []; MONEY = []; NOTES = []; PLAN = []; }
 function setUrl(){ try { history.replaceState(history.state, "", location.pathname + (PID ? "?t=" + PID : "")); } catch(e){} }
 let rq = 0;
 /* 여러 구독이 한꺼번에 와도 한 번만 그린다. requestAnimationFrame 은 뒤에 가려진 탭에서 멈춰서 안 씀 */
 function renderSoon(){ if (rq) return; rq = setTimeout(() => { rq = 0; renderAll(); }, 16); }
-async function openTrip(pid, pin){
-  closeTrip(); PID = pid; IDX = null; LOCK = ""; opening = true;
+async function openTrip(pid){
+  closeTrip(); PID = pid; IDX = null; opening = true;
   setUrl(); renderAll();
-  try { await openTrip_(pid, pin); } finally { opening = false; renderAll(); }
+  try { await openTrip_(pid); } finally { opening = false; renderAll(); }
 }
-async function openTrip_(pid, pin){
+async function openTrip_(pid){
   const ix = await C("tripIdx").doc(pid).get().catch(() => null);
   if (PID !== pid) return;
   if (!ix || !ix.exists){ PID = ""; setUrl(); setStatus("없는 여행이에요 — 링크를 확인해 주세요", "err"); return; }
   IDX = ix.data();
-  const saved = ls("tr_key:" + pid);
-  let k = pin !== undefined ? await keyOf(pid, pin) : saved;
-  if (!k && !IDX.locked) k = await keyOf(pid, "");
-  if (!k){ LOCK = "PIN 을 넣어주세요. 이 기기에선 한 번만 넣으면 돼요."; return; }
-  let d = await C("trips").doc(k).get().catch(() => null);
-  if ((!d || !d.exists) && pin === undefined && !IDX.locked){          // 기억해 둔 열쇠가 옛것인데 지금은 PIN 이 풀린 여행
-    const k0 = await keyOf(pid, "");
-    if (k0 !== k){ k = k0; d = await C("trips").doc(k).get().catch(() => null); }
-  }
+  const k = await keyOf(pid);
+  const d = await C("trips").doc(k).get().catch(() => null);
   if (PID !== pid) return;
-  if (!d || !d.exists){
-    ls("tr_key:" + pid, "");
-    LOCK = pin !== undefined ? "PIN 이 맞지 않아요" : (saved ? "PIN 이 바뀌었어요 — 다시 넣어주세요" : "여행을 열지 못했어요");
-    return;
-  }
-  ls("tr_key:" + pid, k);
-  if (pin !== undefined) ls("tr_pin:" + pid, pin);      // watchTrip 이 확인해 SPIN 으로
+  if (!d || !d.exists){ PID = ""; setStatus("여행을 열지 못했어요 — 네트워크를 확인하고 새로고침해 주세요", "err"); return; }   // 주소는 그대로 둬서 새로고침하면 다시 연다
   watchTrip(pid, k);
 }
-let SPIN = "";                                      // 이 기기가 아는, 확인된 PIN (공유·정산 공지에 붙임)
-function checkSharePin(pid, k){
-  SPIN = "";
-  const pin = ls("tr_pin:" + pid);
-  if (pin) keyOf(pid, pin).then(x => { if (x === k && PID === pid) SPIN = pin; });
-}
 function watchTrip(pid, k){
-  checkSharePin(pid, k);
   TID = k; ME = ls("tr_me:" + pid);
   const sub = (name, set) => unsub.push(T().collection(name).onSnapshot(s => { set(s.docs.map(d => Object.assign({ id: d.id }, d.data()))); renderSoon(); },
     e => setStatus("불러오기 실패 — " + errText(e), "err")));
   unsub.push(T().onSnapshot(s => {
     if (!s.exists){
-      if (MOVING) return;                                          // 내가 PIN 을 바꾸는 중
-      /* 다른 기기에서 PIN 을 바꿨거나(→ 다시 열기) 여행을 지웠다 */
+      if (MOVING) return;                                          // 내가 지우는 중
+      /* 다른 기기에서 여행을 지웠다 */
       closeTrip(); renderAll();
       C("tripIdx").doc(pid).get().then(x => {
         if (x.exists) openTrip(pid); else { PID = ""; setUrl(); setStatus("이 여행은 지워졌어요", "err"); renderAll(); }
@@ -754,20 +704,7 @@ function watchTrip(pid, k){
   SUBS.forEach(c => sub(c, a => { if (c === "items") ITEMS = a; if (c === "money") MONEY = a; if (c === "notes") NOTES = a; if (c === "plan") PLAN = a; }));
 }
 let MOVING = false;
-function goHome(){ closeTrip(); PID = ""; IDX = null; LOCK = ""; setUrl(); renderAll(); window.scrollTo(0, 0); }
-$("#lockGo").onclick = () => { const p = $("#lockPin").value.trim(); if (p && PID) openTrip(PID, p); };
-$("#lockPin").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); $("#lockGo").click(); } });
-/** 여행 통째로 옮기기 (PIN 바꾸기) — 새 열쇠 자리에 복사하고 옛 자리를 지운다 */
-async function moveTrip(fromK, toK){
-  const src = C("trips").doc(fromK), dst = C("trips").doc(toK);
-  const d = await src.get(); if (!d.exists) throw new Error("여행을 못 찾았어요");
-  await dst.set(d.data());
-  const docs = [];
-  for (const c of SUBS) (await src.collection(c).get()).docs.forEach(x => docs.push([c, x]));
-  for (let i = 0; i < docs.length; i += 400){ const b = db.batch(); docs.slice(i, i + 400).forEach(([c, x]) => b.set(dst.collection(c).doc(x.id), x.data())); await b.commit(); }
-  for (let i = 0; i < docs.length; i += 400){ const b = db.batch(); docs.slice(i, i + 400).forEach(([c, x]) => b.delete(x.ref)); await b.commit(); }
-  await src.delete();
-}
+function goHome(){ closeTrip(); PID = ""; IDX = null; setUrl(); renderAll(); window.scrollTo(0, 0); }
 async function run(p, okMsg){
   try { await p; if (okMsg) setStatus(okMsg, "ok"); return true; }
   catch(e){ setStatus("실패 — " + errText(e), "err"); return false; }
@@ -777,16 +714,9 @@ async function run(p, okMsg){
 function renderAll(){
   const has = !!(TID && TRIP);
   $("#foot").textContent = "여행 가자 " + BUILD + (typeof isAdminMode === "function" && isAdminMode() ? " · 관리자" : "");
-  const locked = !has && !!PID && !!LOCK && !opening;
   $("#view-trip").hidden = !has;
-  $("#view-lock").hidden = !locked;
-  $("#view-home").hidden = has || opening || locked || !!PID;
-  if (locked){
-    $("#lockName").textContent = IDX ? IDX.name : "여행";
-    $("#lockHint").textContent = LOCK; $("#lockHint").style.color = /맞지|바뀌|못/.test(LOCK) ? "var(--warn)" : "";
-    $("#lockPin").value = ""; setTimeout(() => { try { $("#lockPin").focus(); } catch(e){} }, 60);
-  }
-  $("#pickName").textContent = has ? "🧳 " + TRIP.name : (locked && IDX ? "🔒 " + IDX.name : "🧳 여행 고르기");
+  $("#view-home").hidden = has || opening || !!PID;
+  $("#pickName").textContent = has ? "🧳 " + TRIP.name : "🧳 여행 고르기";
   document.title = has ? TRIP.name + " — 여행 가자" : "여행 가자";
   if (!has){ renderHome(); return; }
   renderHead();
@@ -799,9 +729,12 @@ function renderAll(){
   if (TAB === "pack") renderPack();
   if (TAB === "money") renderMoney();
 }
+/* 관리자 기기는 전체 여행이 목록에 들어온다 (syncAdminTrips) */
+const mineTitle = () => typeof isAdminMode === "function" && isAdminMode() ? "전체 여행 (관리자)" : "이 기기에서 연 여행";
 function renderHome(){
   const a = mine();
   $("#homeMine").hidden = !a.length;
+  $("#homeMineH").textContent = mineTitle();
   const box = $("#homeMineList"); box.innerHTML = "";
   a.forEach(x => box.appendChild(tripRow(x, null)));
 }
@@ -1568,19 +1501,9 @@ async function delPay(m){
   run(T().collection("money").doc(m.id).delete(), "지웠어요");
 }
 /** 단톡방에 붙여넣을 정산 공지 */
-/** PIN 이 걸렸는데 이 기기가 모르면 한 번 묻고 확인해 기억 → true. 공유창은 버튼을 다시 눌러 연다(폰이 막아서) */
-async function askSharePin(){
-  const pin = ((await askText({ title: "같이 보낼 PIN", text: "공유 글에 PIN 을 붙여 보내요. 이 기기에 기억해 둬요.", maxlength: 8, placeholder: "PIN" })) || "").trim();
-  if (!pin) return false;
-  if (await keyOf(PID, pin) !== TID){ setStatus("PIN 이 맞지 않아요", "err"); return false; }
-  ls("tr_pin:" + PID, pin); SPIN = pin;
-  setStatus("PIN 을 기억했어요 — 버튼을 한 번 더 눌러 보내세요", "ok");
-  return true;
-}
-async function copySettle(){
-  if (IDX && IDX.locked && !SPIN){ await askSharePin(); return; }
+function copySettle(){
   /* 형식 (2026-10-10 Benny 가 직접 정함):
-     [여행 정산] / 총 지출 100,000원 (5건) / (빈 줄) / 🏦 공금에서 빼 갈 돈 / · 🏦 공금 → 이름 10,000원 … / (빈 줄) / 링크 (PIN : 숫자) / 주소 */
+     [여행 정산] / 총 지출 100,000원 (5건) / (빈 줄) / 🏦 공금에서 빼 갈 돈 / · 🏦 공금 → 이름 10,000원 … / (빈 줄) / 링크 / 주소 */
   const L = ["[" + TRIP.name + " 정산]", "총 지출 " + won(expTotal()) + " (" + expCount() + "건)" + doneNote(), ""];
   const rows = settleRows();
   if (rows.length){
@@ -1590,7 +1513,7 @@ async function copySettle(){
       L.push("· " + teamName(x.from) + " → " + teamName(x.to) + " " + (done ? won(x.paid) + " (완료)" : won(x.amt)));
     });
   } else L.push("✓ 정산 끝");
-  L.push("", IDX && IDX.locked && SPIN ? "링크 (PIN : " + SPIN + ")" : "링크", linkOf());
+  L.push("", "링크", linkOf());
   shareLine(L.join("\n"), "정산 공지 복사됨 — 단톡방에 붙여넣으세요");
 }
 /* 지출 적기 */
@@ -1737,12 +1660,12 @@ function refSources(){
   return Object.keys(TEMPLATES).map(id => ({ id, name: TEMPLATES[id].name }))
     .concat(mine().filter(m => m.id !== PID).map(m => ({ id: "t:" + m.id, name: "📋 " + m.name })));
 }
-/** 레퍼런스의 준비물 — 지난 여행은 이 기기의 열쇠(또는 빈 PIN)로 읽는다. 사람 이름은 받을 쪽 팀에 있는 이름만 남긴다 */
+/** 레퍼런스의 준비물 — 사람 이름은 받을 쪽 팀에 있는 이름만 남긴다 */
 async function loadRef(id, teams){
   if (!id) return [];
   if (!id.startsWith("t:")) return tplItems(id);
   const pid = id.slice(2);
-  let k = ls("tr_key:" + pid) || await keyOf(pid, "");
+  const k = await keyOf(pid);
   const s = await C("trips").doc(k).collection("items").get().catch(() => null);
   if (!s) return null;
   const ppl = (teams || []).map(t => t.name);
@@ -1752,15 +1675,15 @@ async function loadRef(id, teams){
 
 /* ═══ 새 여행 ═══
    (2026-10-10 Benny) 준비물은 기본 '비우기' — 전엔 '캠핑' 이 미리 골라져 있어 넣은 적 없는 목록이 들어갔다.
-   사람은 약속 잡자처럼 이름 → 엔터 → 칩. 지난 여행에서 사람 / 쓸 탭·공금 / 준비물 / PIN 을 골라 가져온다 */
+   사람은 약속 잡자처럼 이름 → 엔터 → 칩. 지난 여행에서 사람 / 쓸 탭·공금 / 준비물을 골라 가져온다 */
 let nTpl = "", nMem = [], nFrom = "", nFromTrip = null;
 let nPicked = null, nPickedOf = "";                 // '골라서 가져오기' 로 고른 준비물 (cat|name) — 목록을 바꾸면 풀린다
 const pickKey = x => (x.cat || "기타") + "|" + x.name;
-let nOpt = { ppl: true, set: true, items: false, pin: false };
+let nOpt = { ppl: true, set: true, items: false };
 MODAL_OPEN.newModal = () => {
-  $("#n_name").value = ""; $("#n_start").value = ""; $("#n_end").value = ""; $("#n_pin").value = ""; syncDateBtn("n");
+  $("#n_name").value = ""; $("#n_start").value = ""; $("#n_end").value = ""; syncDateBtn("n");
   $("#n_mem").value = ""; nMem = []; nFrom = ""; nFromTrip = null;
-  nOpt = { ppl: true, set: true, items: false, pin: false };
+  nOpt = { ppl: true, set: true, items: false };
   nTpl = ""; nPicked = null; nPickedOf = ""; drawTpl(); drawNewMem(); drawFrom();
   softFocus("#n_name");
 };
@@ -1810,10 +1733,8 @@ function drawFrom(){
   });
   const ob = $("#n_fromOpts"); ob.innerHTML = ""; ob.hidden = !nFrom;
   if (!nFrom) return;
-  const pinKnown = !!ls("tr_pin:" + nFrom);
-  [["ppl", "사람"], ["set", "쓸 탭·공금 설정"], ["items", "준비물"], ["pin", pinKnown ? "같은 PIN" : "같은 PIN (이 기기는 몰라요)"]].forEach(([k, lab]) => {
+  [["ppl", "사람"], ["set", "쓸 탭·공금 설정"], ["items", "준비물"]].forEach(([k, lab]) => {
     const c = btn("chip sm", (nOpt[k] ? "☑ " : "☐ ") + lab, () => {
-      if (k === "pin" && !pinKnown) return;
       nOpt[k] = !nOpt[k]; applyFrom(); drawFrom();
     });
     c.setAttribute("aria-pressed", String(!!nOpt[k])); ob.appendChild(c);
@@ -1822,27 +1743,25 @@ function drawFrom(){
 async function pickFrom(pid){
   nFrom = pid; nFromTrip = null;
   if (pid){
-    const k = ls("tr_key:" + pid) || await keyOf(pid, "");
+    const k = await keyOf(pid);
     const d = await C("trips").doc(k).get().catch(() => null);
     nFromTrip = d && d.exists ? d.data() : null;
     if (!nFromTrip){ setStatus("그 여행을 못 읽었어요 — 이 기기에서 한 번 열어 주세요", "err"); nFrom = ""; }
   }
   applyFrom(); drawFrom();
 }
-/* 고른 것 반영 — 사람(이름 칩), 준비물(목록 고르기), PIN(칸 채우기) */
+/* 고른 것 반영 — 사람(이름 칩), 준비물(목록 고르기) */
 function applyFrom(){
   const t = nFromTrip;
   if (t && nOpt.ppl){ (t.teams || []).forEach(x => { if (!nMem.includes(x.name) && nMem.length < 12) nMem.push(x.name); }); }
   if (t && !nOpt.ppl){ const names = (t.teams || []).map(x => x.name); nMem = nMem.filter(n => !names.includes(n)); }
   if (nFrom){ if (nOpt.items) nTpl = "t:" + nFrom; else if (nTpl === "t:" + nFrom) nTpl = ""; }
-  $("#n_pin").value = nFrom && nOpt.pin ? ls("tr_pin:" + nFrom) : ($("#n_pin").value === ls("tr_pin:" + nFrom) ? "" : $("#n_pin").value);
   drawNewMem(); drawTpl();
 }
 $("#n_make").onclick = async () => {
-  const name = $("#n_name").value.trim(), start = $("#n_start").value, end = $("#n_end").value || start, pin = $("#n_pin").value.trim();
+  const name = $("#n_name").value.trim(), start = $("#n_start").value, end = $("#n_end").value || start;
   if (!name){ setStatus("여행 이름을 적어주세요", "err"); return; }
   if (start && end < start){ setStatus("끝나는 날이 시작보다 앞이에요", "err"); return; }
-  if (pin && !pinOk(pin)){ setStatus("PIN 은 숫자 4~8자리예요", "err"); return; }
   if ($("#n_mem").value.trim()) addNewMem();                 // 적어 두고 엔터를 안 누른 이름도
   const teams = nMem.map(n => ({ id: "t" + rid(6), name: n, people: [n], bank: "" }));
   const extra = {};
@@ -1852,9 +1771,9 @@ $("#n_make").onclick = async () => {
     let items = (await loadRef(nTpl, teams)) || [];
     if (nPicked && nPickedOf === nTpl) items = items.filter(x => nPicked.has(pickKey(x)));      // 골라서 가져오기
     const cats = []; items.forEach(x => { if (!cats.includes(x.cat)) cats.push(x.cat); });
-    const pid = rid(20), k = await keyOf(pid, pin);
+    const pid = rid(20), k = await keyOf(pid);
     const b0 = db.batch();
-    b0.set(C("tripIdx").doc(pid), { name, locked: !!pin, start: start || "", createdAt: TSV(), updatedAt: TSV() });
+    b0.set(C("tripIdx").doc(pid), { name, locked: false, start: start || "", createdAt: TSV(), updatedAt: TSV() });
     b0.set(C("trips").doc(k), Object.assign({ pid, name, start, end, place: "", addr: "", phone: "", teams, cats, createdAt: TSV(), updatedAt: TSV() }, extra));
     await b0.commit();
     for (let i = 0; i < items.length; i += 100){
@@ -1862,7 +1781,7 @@ $("#n_make").onclick = async () => {
       items.slice(i, i + 100).forEach((x, j) => b.set(C("trips").doc(k).collection("items").doc(), Object.assign({}, x, { ord: i + j + 1, st: {}, at: TSV() })));
       await b.commit();
     }
-    ls("tr_key:" + pid, k); ls("tr_pin:" + pid, pin || ""); mineAdd(pid, name, start);
+    mineAdd(pid, name, start);
     if (typeof adminTrack === "function") adminTrack("trips", pid);
     closeModal("newModal");
     const first = extra.tabsOff && extra.tabsOff.includes("info") ? (["pack", "money"].find(t => !extra.tabsOff.includes(t)) || "money") : "info";
@@ -1881,7 +1800,7 @@ async function pickRef(id){
   $("#r_hint").textContent = "불러오는 중…";
   const a = await loadRef(id, rfMode === "new" ? nMem.map(n => ({ name: n })) : TEAMS());
   if (rfSrc !== id) return;
-  if (!a || !a.length){ $("#r_hint").textContent = "가져올 준비물이 없어요. PIN 걸린 여행은 이 기기에서 한 번 열어야 가져올 수 있어요."; return; }
+  if (!a || !a.length){ $("#r_hint").textContent = "가져올 준비물이 없어요."; return; }
   const have = new Set(rfMode === "new" ? [] : ITEMS.map(x => x.name.replace(/\s/g, "")));
   rfItems = a.map(x => Object.assign(x, { have: have.has(x.name.replace(/\s/g, "")) })).map(x => Object.assign(x, { sel: rfMode === "new" && nPicked ? nPicked.has(pickKey(x)) : !x.have }));
   drawRef();
@@ -1937,10 +1856,6 @@ MODAL_OPEN.setModal = () => {
   $("#s_name").value = TRIP.name || ""; $("#s_start").value = TRIP.start || ""; $("#s_end").value = TRIP.end || ""; syncDateBtn("s");
   $("#s_place").value = TRIP.place || ""; $("#s_addr").value = TRIP.addr || ""; $("#s_phone").value = TRIP.phone || "";
   stMem = TEAMS().map(t => Object.assign({}, t, { people: [t.name] })); $("#s_mem").value = ""; drawSetMem();
-  const lk = IDX && IDX.locked;
-  $("#s_pin").value = "";
-  $("#s_pinLbl").textContent = lk ? "PIN — 지금 걸려 있어요 (바꾸거나, 비우고 눌러 해제)" : "PIN — 지금은 없어요. 걸면 링크 + PIN 이 있어야 들어와요";
-  $("#s_pinSave").textContent = lk ? "바꾸기" : "걸기";
   stOff = tabsOff().slice(); drawSetTabs();
 };
 let stOff = [];
@@ -1970,25 +1885,6 @@ $("#s_save").onclick = async () => {
   TRIP.tabsOff = stOff.slice(); renderAll();
   run(T().update({ name, start, end, place: $("#s_place").value.trim(), addr: $("#s_addr").value.trim(), phone: $("#s_phone").value.trim(), teams, tabsOff: stOff.slice(), updatedAt: TSV() }), "저장했어요");
 };
-/* PIN 바꾸기 = 새 열쇠 자리로 여행을 통째로 옮긴다 (링크는 그대로). 다른 기기는 다음에 열 때 새 PIN 을 묻는다 */
-$("#s_pinSave").onclick = async () => {
-  const pin = $("#s_pin").value.trim();
-  if (pin && !pinOk(pin)){ setStatus("PIN 은 숫자 4~8자리예요", "err"); return; }
-  const oldK = TID, pid = PID, newK = await keyOf(pid, pin);
-  if (newK === oldK){ setStatus(pin ? "지금 PIN 과 같아요" : "지금도 PIN 이 없어요", "err"); return; }
-  if (!await ask(pin ? { title: "PIN 을 " + (IDX && IDX.locked ? "바꿀까요?" : "걸까요?"), text: "같이 쓰는 사람들도 다음에 열 때 PIN 을 한 번 넣어야 해요. PIN 은 단톡방에 따로 알려주세요.", ok: "확인" }
-                     : { title: "PIN 을 풀까요?", text: "링크만 있으면 누구나 들어와요.", ok: "풀기" })) return;
-  if (!$("#setModal").hidden) closeModal("setModal");
-  MOVING = true; setStatus("옮기는 중…", "ok");
-  try {
-    await moveTrip(oldK, newK);
-    await C("tripIdx").doc(pid).update({ locked: !!pin, updatedAt: TSV() });
-    ls("tr_key:" + pid, newK); ls("tr_pin:" + pid, pin || "");
-    setStatus(pin ? "PIN 을 걸었어요 🔒" : "PIN 을 풀었어요", "ok");
-  } catch(e){ setStatus("실패 — " + errText(e), "err"); }
-  MOVING = false;
-  openTrip(pid);
-};
 $("#s_delete").onclick = async () => {
   if (!TRIP) return;
   if (!await ask({ title: "여행을 지울까요?", text: "공지·준비물·정산까지 전부 지워지고 되돌릴 수 없어요.", ok: "지우기", danger: true, type: TRIP.name })) return;
@@ -2003,7 +1899,7 @@ $("#s_delete").onclick = async () => {
   })(), "여행을 지웠어요");
   MOVING = false;
   if (ok){
-    ls("tr_mine", JSON.stringify(mine().filter(m => m.id !== pid))); ls("tr_me:" + pid, ""); ls("tr_key:" + pid, "");
+    ls("tr_mine", JSON.stringify(mine().filter(m => m.id !== pid))); ls("tr_me:" + pid, "");
     if (typeof adminUntrack === "function") adminUntrack("trips", pid);
     goHome();
   }
@@ -2052,26 +1948,10 @@ $("#rgClear").onclick = () => { rgA = rgB = ""; rgStep = 0; applyRange(); closeM
 $("#n_dates").onclick = () => openRange("n");
 $("#s_dates").onclick = () => openRange("s");
 
-/* ═══ 등록된 여행 — tripIdx 전체 (최근 것 위) ═══
-   2026-10-26 링크 전용: 서버 규칙이 전체 목록 조회를 막아 이 창은 더 이상 열리지 않는다(버튼 없앰) */
-let ALL = [];
-async function loadAll(){
-  const box = $("#allList"); box.innerHTML = '<p class="hint">불러오는 중…</p>';
-  const s = await C("tripIdx").get().catch(() => null);
-  if (!s){ box.innerHTML = '<p class="hint">목록을 못 불러왔어요</p>'; return; }
-  ALL = s.docs.map(d => Object.assign({ id: d.id }, d.data()))
-    .sort((a, b) => (b.start || "").localeCompare(a.start || "") || ((b.createdAt && b.createdAt.toMillis()) || 0) - ((a.createdAt && a.createdAt.toMillis()) || 0));
-  box.innerHTML = "";
-  if (!ALL.length){ box.innerHTML = '<p class="hint">아직 여행이 없어요.</p>'; return; }
-  ALL.forEach(x => box.appendChild(tripRow({ id: x.id, name: (x.locked ? "🔒 " : "") + x.name, start: x.start || "" }, null, "allModal")));
-}
-MODAL_OPEN.allModal = () => { loadAll(); };
-
 /* ═══ 고르기 · 공유 ═══ */
-function tripRow(x, onDel, inModal){
+function tripRow(x, onDel){
   const row = el("div", "pkrow");
-  const md = inModal || "pickModal";
-  const go = btn("pk1" + (x.id === PID ? " on" : ""), x.name, () => { if (!$("#" + md).hidden){ closeModal(md); afterBack(() => { if (x.id !== PID || !TID) openTrip(x.id); }); } else openTrip(x.id); });
+  const go = btn("pk1" + (x.id === PID ? " on" : ""), x.name, () => { if (!$("#pickModal").hidden){ closeModal("pickModal"); afterBack(() => { if (x.id !== PID || !TID) openTrip(x.id); }); } else openTrip(x.id); });
   if (x.start) go.appendChild(el("small", "", fmtFull(x.start)));
   row.appendChild(go);
   if (onDel){ const d = btn("btn x pkdel", "✕", () => onDel(x.id)); d.setAttribute("aria-label", x.name + " 이 기기 목록에서 지우기"); row.appendChild(d); }
@@ -2080,6 +1960,7 @@ function tripRow(x, onDel, inModal){
 function renderPick(){
   const a = mine();
   $("#mineWrap").hidden = !a.length;
+  $("#mineH").textContent = mineTitle();
   const box = $("#mineList"); box.innerHTML = "";
   a.forEach(x => box.appendChild(tripRow(x, mineForget)));
 }
@@ -2089,12 +1970,7 @@ $("#newBtn").onclick = () => { closeModal("pickModal"); afterBack(() => openModa
 $("#homeNew").onclick = () => openModal("newModal");
 $("#homeBtn").onclick = () => { closeModal("pickModal"); afterBack(goHome); };
 $("#introBtn").onclick = () => shareLine("여행 가자 - 공지·준비물·정산을 링크 하나로 " + location.origin + location.pathname, "소개 링크 복사됨 — 보내고 싶은 곳에 붙여넣으세요");
-const pinTail = () => IDX && IDX.locked && SPIN ? " (PIN " + SPIN + ")" : "";
-$("#shareBtn").onclick = async () => {
-  /* 아는 PIN 이 있으면 기다리지 않고 바로 공유창 */
-  if (!(IDX && IDX.locked) || SPIN){ shareLine("여행 가자 - " + TRIP.name + " " + linkOf() + pinTail(), SPIN ? "링크·PIN 복사됨 — 단톡방에 붙여넣으세요" : "링크 복사됨 — 단톡방에 붙여넣으세요"); return; }
-  await askSharePin();
-};
+$("#shareBtn").onclick = () => shareLine("여행 가자 - " + TRIP.name + " " + linkOf(), "링크 복사됨 — 단톡방에 붙여넣으세요");
 const TAB_NAME = { info: "공지·일정", pack: "준비물", money: "정산" };
 const tabsOff = () => ((TRIP && TRIP.tabsOff) || []).filter(t => TAB_NAME[t]);
 $$(".tabbar .segb").forEach(b => b.onclick = () => {
@@ -2119,12 +1995,13 @@ async function syncAdminTrips(){
         cur.push({ id: s.id, name: d.name || "여행", start: d.start || "" });
       }
     });
-    ls("tr_mine", JSON.stringify(cur.slice(0, 50)));
+    ls("tr_mine", JSON.stringify(cur.slice(0, 200)));
   }
   if (typeof applyAdminUi === "function") applyAdminUi();
   renderAll();
   if (!$("#pickModal").hidden) renderPick();
 }
+try { Object.keys(localStorage).filter(k => /^tr_(pin|key):/.test(k)).forEach(k => localStorage.removeItem(k)); } catch(e){}   // 2026-11-03 PIN 없앰 — 이 기기에 남은 옛 PIN·열쇠
 if (!FB_OK) setStatus("저장소를 불러오지 못했어요 — 네트워크를 확인하고 새로고침해 주세요", "err");
 else {
   syncAdminTrips();
