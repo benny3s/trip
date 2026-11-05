@@ -788,8 +788,18 @@ async function addMe(){
   let t = TEAMS().find(x => x.name === nm);
   if (!t){
     if (TEAMS().length >= 12){ setStatus("12명까지예요", "err"); return; }
-    t = { id: "t" + rid(6), name: nm, people: [nm], bank: "" };
-    await run(T().update({ teams: TEAMS().concat([t]), updatedAt: TSV() }));
+    /* 트랜잭션으로 저장소의 최신 목록에 붙인다 — 배열째 덮어쓰면 같이 들어온 사람이 빠졌다 (2026-11-05).
+       ME 는 저장이 된 뒤에만 바꾼다 */
+    const nt = { id: "t" + rid(6), name: nm, people: [nm], bank: "" };
+    const ok = await run(db.runTransaction(async tx => {
+      const s = await tx.get(T()), cur = (s.exists && s.data().teams) || [];
+      t = cur.find(x => x.name === nm);
+      if (t) return;                                  // 그사이 같은 이름이 들어왔다 — 그 사람으로
+      if (cur.length >= 12) throw fail("12명까지예요");
+      t = nt; tx.update(T(), { teams: cur.concat([nt]), updatedAt: TSV() });
+    }));
+    if (!ok || !t) return;
+    if (TRIP && !teamOf(t.id)) TRIP.teams = TEAMS().concat([t]);     // 구독이 오기 전에도 바로 보이게
   }
   ME = t.id; ls("tr_me:" + PID, ME);
   if (!$("#meModal").hidden) closeModal("meModal");
@@ -1596,7 +1606,7 @@ $("#e_del").onclick = () => {
 /* ═══ 사람 칩 (설정) — 새 여행 창과 같은 모양. 저장소에선 옛 이름 그대로 teams
    (2026-10-10 Benny: "사람이 한 눈에 안 들어오고 추가도 불편해 … 계좌는 없애고 동그란 버튼으로")
    이름을 누르면 고치기(id 그대로 → 정산 기록 유지), × 는 빼기. 저장을 눌러야 반영 ═══ */
-let stMem = [];
+let stMem = [], stOpen = [];
 function drawSetMem(){
   const box = $("#s_memChips"); box.innerHTML = "";
   if (!stMem.length){ box.appendChild(el("span", "hint", "아직 없어요. 위에 이름을 적고 엔터.")); return; }
@@ -1869,6 +1879,7 @@ MODAL_OPEN.setModal = () => {
   $("#s_name").value = TRIP.name || ""; $("#s_start").value = TRIP.start || ""; $("#s_end").value = TRIP.end || ""; syncDateBtn("s");
   $("#s_place").value = TRIP.place || ""; $("#s_addr").value = TRIP.addr || ""; $("#s_phone").value = TRIP.phone || "";
   stMem = TEAMS().map(t => Object.assign({}, t, { people: [t.name] })); $("#s_mem").value = ""; drawSetMem();
+  stOpen = TEAMS().map(t => ({ id: t.id, name: t.name }));        // 창을 열 때의 사람 — 저장할 때 그사이 들어온 사람·고친 이름을 가린다
   stOff = tabsOff().slice(); drawSetTabs();
 };
 let stOff = [];
@@ -1896,8 +1907,29 @@ $("#s_save").onclick = async () => {
   if (!$("#setModal").hidden) closeModal("setModal");
   if (IDX && (IDX.name !== name || (IDX.start || "") !== start)){ IDX.name = name; IDX.start = start; C("tripIdx").doc(PID).update({ name, start: start || "", updatedAt: TSV() }).catch(() => {}); }
   TRIP.tabsOff = stOff.slice(); renderAll();
-  run(T().update({ name, start, end, place: $("#s_place").value.trim(), addr: $("#s_addr").value.trim(), phone: $("#s_phone").value.trim(), teams, tabsOff: stOff.slice(), updatedAt: TSV() }), "저장했어요");
+  const fields = { name, start, end, place: $("#s_place").value.trim(), addr: $("#s_addr").value.trim(), phone: $("#s_phone").value.trim(), tabsOff: stOff.slice(), updatedAt: TSV() };
+  const renames = new Map(); stOpen.forEach(o => { const t = teams.find(x => x.id === o.id); if (t && t.name !== o.name) renames.set(o.name, t.name); });
+  /* 사람 목록은 트랜잭션 안에서 최신 teams 에 합친다 — 창을 연 뒤에 다른 기기에서 들어온 사람은 뒤에 남긴다 (2026-11-05) */
+  const ok = await run(db.runTransaction(async tx => {
+    const s = await tx.get(T()), cur = (s.exists && s.data().teams) || [];
+    const all = teams.concat(cur.filter(x => !stOpen.some(o => o.id === x.id) && !teams.some(y => y.id === x.id)));
+    if (all.length > 12) throw fail("12명까지예요");
+    tx.update(T(), Object.assign({}, fields, { teams: all }));
+  }), "저장했어요");
+  if (ok && renames.size) await renameWho(renames);
 };
+/** 이름을 고치면 준비물·일정의 담당(who, 이름으로 저장됨)도 같이 — 안 그러면 '담당 미정'이 되고 체크도 안 보였다 (2026-11-05) */
+async function renameWho(map){
+  const fix = w => Array.from(new Set((w || []).map(x => map.has(x) ? map.get(x) : x)));
+  const ch = [];
+  [["items", ITEMS], ["plan", PLAN]].forEach(([c, a]) => a.forEach(x => {
+    const w = fix(x.who); if (JSON.stringify(w) !== JSON.stringify(x.who || [])) ch.push([T().collection(c).doc(x.id), w]);
+  }));
+  if (!ch.length) return;
+  await run((async () => {
+    for (let i = 0; i < ch.length; i += 400){ const b = db.batch(); ch.slice(i, i + 400).forEach(([r, who]) => b.update(r, { who })); await b.commit(); }
+  })());
+}
 $("#s_delete").onclick = async () => {
   if (!TRIP) return;
   if (!await ask({ title: "여행을 지울까요?", text: "공지·준비물·정산까지 전부 지워지고 되돌릴 수 없어요.", ok: "지우기", danger: true, type: TRIP.name })) return;
