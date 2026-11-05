@@ -1570,7 +1570,9 @@ function drawExp(){
   $("#e_optSum").textContent = stx === "다 같이" ? "다 같이 똑같이" : stx;
   const sb = $("#e_split"); sb.innerHTML = "";
   const sh = sharesOf(amtVal(), exSplit);
-  TEAMS().forEach(t => {
+  /* 지금 사람에 없는 몫(지운 사람)도 남아 있으면 보여 준다 — 안 보인 채 계산에만 들어갔다 (2026-11-05) */
+  const left = Object.keys(exSplit).filter(k => k !== POT && +exSplit[k] > 0 && !teamOf(k)).map(k => ({ id: k, name: teamName(k) }));
+  TEAMS().concat(left).forEach(t => {
     const n = +exSplit[t.id] || 0;
     const r = el("div", "splitrow" + (n ? "" : " off"));
     const nm = el("div", "sn", t.name);
@@ -1587,9 +1589,11 @@ $("#e_eq").onclick = () => { exSplit = eqSplit(); drawExp(); };
 function saveExp(){
   const amt = amtVal(), title = $("#e_title").value.trim(), memo = $("#e_memo").value.trim();
   if (!amt){ setStatus("금액을 적어주세요", "err"); return; }
+  if (amt > 100000000){ setStatus("1억 원까지 적을 수 있어요", "err"); return; }     // 규칙도 1억까지 — 창이 닫힌 뒤 거절되면 적은 게 날아갔다
   if (!exPayer){ setStatus("누가 냈는지 골라주세요", "err"); return; }
   const split = {}; for (const k in exSplit) if (+exSplit[k] > 0) split[k] = +exSplit[k];
   if (!Object.keys(split).length){ setStatus("나눌 사람을 하나 이상 남겨주세요", "err"); return; }
+  if (Object.keys(split).length > 12){ setStatus("나눌 사람은 12명까지예요 — (지운 사람) 몫을 빼 주세요", "err"); return; }
   const m = exEditing, data = { kind: "exp", title: title || "지출", amt, payer: exPayer, split, memo, done: !!(m && exDone) };
   closeModal("expModal");
   run(m ? T().collection("money").doc(m.id).update(data) : T().collection("money").add(Object.assign(data, { at: TSV() })));
@@ -1799,16 +1803,22 @@ $("#n_make").onclick = async () => {
     b0.set(C("tripIdx").doc(pid), { name, locked: false, start: start || "", createdAt: TSV(), updatedAt: TSV() });
     b0.set(C("trips").doc(k), Object.assign({ pid, name, start, end, place: "", addr: "", phone: "", teams, cats, createdAt: TSV(), updatedAt: TSV() }, extra));
     await b0.commit();
-    for (let i = 0; i < items.length; i += 100){
-      const b = db.batch();
-      items.slice(i, i + 100).forEach((x, j) => b.set(C("trips").doc(k).collection("items").doc(), Object.assign({}, x, { ord: i + j + 1, st: {}, at: TSV() })));
-      await b.commit();
-    }
+    /* 여행이 생기면 바로 링크를 남긴다 — 준비물이 실패해도 찾을 수 없는 여행이 남지 않게, 여행은 연다 (2026-11-05) */
     mineAdd(pid, name, start);
     if (typeof adminTrack === "function") adminTrack("trips", pid);
+    let itemErr = null;
+    try {
+      for (let i = 0; i < items.length; i += 100){
+        const b = db.batch();
+        items.slice(i, i + 100).forEach((x, j) => b.set(C("trips").doc(k).collection("items").doc(), Object.assign({}, x, { ord: i + j + 1, st: {}, at: TSV() })));
+        await b.commit();
+      }
+    } catch(e){ itemErr = e; }
     closeModal("newModal");
     const first = extra.tabsOff && extra.tabsOff.includes("info") ? (["pack", "money"].find(t => !extra.tabsOff.includes(t)) || "money") : "info";
-    afterBack(() => { TAB = first; ls("tr_tab", TAB); openTrip(pid); setStatus("만들었어요! 🔗 공유로 링크를 보내세요", "ok"); });
+    afterBack(() => { TAB = first; ls("tr_tab", TAB); openTrip(pid);
+      if (itemErr) setStatus("여행은 만들었는데 준비물을 다 넣지 못했어요 — ✎ 준비물 수정 → 📋 기본 목록에서 다시 가져와 주세요 (" + errText(itemErr) + ")", "err");
+      else setStatus("만들었어요! 🔗 공유로 링크를 보내세요", "ok"); });
   } catch(e){ setStatus("실패 — " + errText(e), "err"); }
   finally { $("#n_make").disabled = false; }
 };
@@ -1936,8 +1946,8 @@ $("#s_delete").onclick = async () => {
   if (!$("#setModal").hidden) closeModal("setModal");
   const tid = TID, pid = PID, all = [];
   MOVING = true;
-  for (const c of SUBS) (await C("trips").doc(tid).collection(c).get()).docs.forEach(d => all.push(d.ref));
   const ok = await run((async () => {
+    for (const c of SUBS) (await C("trips").doc(tid).collection(c).get()).docs.forEach(d => all.push(d.ref));     // 읽기도 run 안에서 — 실패하면 알리고 MOVING 을 푼다
     for (let i = 0; i < all.length; i += 400){ const b = db.batch(); all.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit(); }
     await C("trips").doc(tid).delete();
     await C("tripIdx").doc(pid).delete();

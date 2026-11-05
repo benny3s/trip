@@ -130,7 +130,7 @@ function load(shared){
     localStorage: { getItem: k => (k in ls ? ls[k] : null), setItem: (k, v) => { ls[k] = String(v); }, removeItem: k => { delete ls[k]; } },
     location: { origin: "https://x.test", pathname: "/trip/", search: "", reload(){} },
     history: { replaceState(){}, state: null },
-    navigator: {}, matchMedia: () => ({ matches: false }),
+    navigator: {}, matchMedia: () => ({ matches: false }), scrollTo(){},
     document: { createElement: tag => fakeEl(tag), title: "" },
     firebase: { firestore: { FieldValue: { serverTimestamp: () => SV, arrayUnion: (...a) => ({ __union: a }) } } },
     db: F.db, FB_OK: false,
@@ -151,6 +151,7 @@ function load(shared){
   ctx.window = ctx;
   vm.createContext(ctx);
   vm.runInContext(mainScript(), ctx, { filename: "index.html" });
+  statuses.length = 0;                // 시작할 때 FB_OK=false 로 뜬 알림은 빼고
   const run = code => vm.runInContext(code, ctx);
   return { ctx, run, $, els, F, asks, statuses, ls };
 }
