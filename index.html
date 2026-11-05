@@ -705,9 +705,11 @@ function watchTrip(pid, k){
 }
 let MOVING = false;
 function goHome(){ closeTrip(); PID = ""; IDX = null; setUrl(); renderAll(); window.scrollTo(0, 0); }
+/* 신호가 없어서 실패한 것 — 캠핑장처럼 약한 곳에선 '다시 눌러 주세요' 가 제일 알아듣기 쉽다 (2026-11-05) */
+const noSignal = e => navigator.onLine === false || /unavailable|deadline/.test((e && e.code) || "");
 async function run(p, okMsg){
   try { await p; if (okMsg) setStatus(okMsg, "ok"); return true; }
-  catch(e){ setStatus("실패 — " + errText(e), "err"); return false; }
+  catch(e){ setStatus(noSignal(e) ? "신호가 없어요. 연결되면 다시 눌러 주세요" : "실패 — " + errText(e), "err"); return false; }
 }
 
 /* ═══ 화면 ═══ */
@@ -788,17 +790,19 @@ async function addMe(){
   let t = TEAMS().find(x => x.name === nm);
   if (!t){
     if (TEAMS().length >= 12){ setStatus("12명까지예요", "err"); return; }
-    /* 트랜잭션으로 저장소의 최신 목록에 붙인다 — 배열째 덮어쓰면 같이 들어온 사람이 빠졌다 (2026-11-05).
-       ME 는 저장이 된 뒤에만 바꾼다 */
-    const nt = { id: "t" + rid(6), name: nm, people: [nm], bank: "" };
-    const ok = await run(db.runTransaction(async tx => {
-      const s = await tx.get(T()), cur = (s.exists && s.data().teams) || [];
-      t = cur.find(x => x.name === nm);
-      if (t) return;                                  // 그사이 같은 이름이 들어왔다 — 그 사람으로
-      if (cur.length >= 12) throw fail("12명까지예요");
-      t = nt; tx.update(T(), { teams: cur.concat([nt]), updatedAt: TSV() });
-    }));
-    if (!ok || !t) return;
+    /* arrayUnion 으로 저장소의 최신 목록 뒤에 붙인다 — 배열째 덮어쓰면 같이 들어온 사람이 빠졌다 (2026-11-05).
+       읽지 않으니 신호가 없어도 기기에 쌓였다가 올라가고, id 를 이름에서 정해 두면 같은 이름이 같이 들어와도 한 사람으로 합쳐진다 */
+    const hid = "t" + Array.from(nm).reduce((h, c) => Math.imul(h ^ c.codePointAt(0), 16777619) >>> 0, 2166136261).toString(36);
+    t = { id: TEAMS().some(x => x.id === hid) ? "t" + rid(6) : hid, name: nm, people: [nm], bank: "" };    // 이름을 바꾼 사람과 id 가 겹치면 무작위로
+    const pid = PID, id = t.id, w = T().update({ teams: firebase.firestore.FieldValue.arrayUnion(t), updatedAt: TSV() });
+    if (navigator.onLine === false){
+      /* 신호가 없다 — 서버 답을 기다리지 않고 진행, 나중에 거절되면 ME 를 되돌린다 */
+      w.then(() => setStatus("사람을 추가했어요", "ok"), e => {
+        if (PID === pid && ME === id){ ME = ""; ls("tr_me:" + pid, ""); renderAll(); }
+        setStatus("실패 — " + errText(e), "err");
+      });
+      setStatus("신호가 돌아오면 저장돼요", "ok");
+    } else if (!await run(w)) return;                     // ME 는 저장이 된 뒤에만 바꾼다
     if (TRIP && !teamOf(t.id)) TRIP.teams = TEAMS().concat([t]);     // 구독이 오기 전에도 바로 보이게
   }
   ME = t.id; ls("tr_me:" + PID, ME);
@@ -1508,6 +1512,9 @@ async function markSent(x){
   const title = x.from === POT ? teamName(x.to) + " 님이 공금에서 빼 간 걸로 기록할까요?"
               : x.to === POT ? teamName(x.from) + " 님이 공금에 넣은 걸로 기록할까요?" : "보낸 걸로 기록할까요?";
   if (!await ask({ title, text: teamName(x.from) + " → " + teamName(x.to) + "\n" + won(x.amt) + "\n\n기록하면 보낼 돈에서 빠져요. 잘못 눌렀으면 이 줄의 ‘되돌리기’로 취소해요.", ok: xferWord(x) })) return;
+  /* 확인 창이 뜬 사이 상대가 같은 줄을 기록했을 수 있다 — 순번을 다시 세면 같은 금액이 한 번 더 기록되니, 남은 돈이 그대로일 때만 저장 */
+  const now = settleRows().find(r => r.from === x.from && r.to === x.to);
+  if (!now || now.amt !== x.amt){ setStatus("그사이 이 줄이 바뀌었어요 (상대가 먼저 기록했을 수 있어요). 목록을 확인해 주세요", "err"); return; }
   const kind = x.from === POT ? "공금에서 빼감" : x.to === POT ? "공금 넣기" : "송금";
   /* 문서 id 를 그 두 사람 사이 n번째 기록으로 정해 두고 트랜잭션으로 — 보낸 사람·받는 사람이 같이 눌러도 한 번만 (2026-11-05) */
   const base = "pay_" + x.from + "_" + x.to + "_";
@@ -1914,31 +1921,37 @@ $("#s_save").onclick = async () => {
   const gone = TEAMS().filter(t => !teams.some(x => x.id === t.id));
   const used = gone.filter(t => MONEY.some(m => m.payer === t.id || (m.split && m.split[t.id])));
   if (used.length && !await ask({ title: "빼도 될까요?", text: used.map(t => t.name).join(", ") + " — 정산에 들어 있어요. 빼면 ‘(지운 사람)’ 으로 남아요.", ok: "빼기", danger: true })) return;
-  if (!$("#setModal").hidden) closeModal("setModal");
-  if (IDX && (IDX.name !== name || (IDX.start || "") !== start)){ IDX.name = name; IDX.start = start; C("tripIdx").doc(PID).update({ name, start: start || "", updatedAt: TSV() }).catch(() => {}); }
-  TRIP.tabsOff = stOff.slice(); renderAll();
   const fields = { name, start, end, place: $("#s_place").value.trim(), addr: $("#s_addr").value.trim(), phone: $("#s_phone").value.trim(), tabsOff: stOff.slice(), updatedAt: TSV() };
   const renames = new Map(); stOpen.forEach(o => { const t = teams.find(x => x.id === o.id); if (t && t.name !== o.name) renames.set(o.name, t.name); });
+  /* 이름을 고치면 준비물·일정의 담당도 같이 — 사람 목록과 한 트랜잭션에 묶어서, 하나라도 실패하면 아무것도 안 바뀌고 창이 남는다 (한 번에 500개까지) */
+  const fixes = whoFixes(renames);
+  if (fixes.length > 450){ setStatus("담당을 바꿔야 할 곳이 너무 많아요 — 이름을 나눠서 고쳐 주세요", "err"); return; }
+  const pid = PID, tref = T();
+  $("#s_save").disabled = true;                              // 저장이 끝난 뒤에 창을 닫는다 — 실패하면 입력이 그대로 남게 (2026-11-05)
   /* 사람 목록은 트랜잭션 안에서 최신 teams 에 합친다 — 창을 연 뒤에 다른 기기에서 들어온 사람은 뒤에 남긴다 (2026-11-05) */
   const ok = await run(db.runTransaction(async tx => {
-    const s = await tx.get(T()), cur = (s.exists && s.data().teams) || [];
+    const s = await tx.get(tref), cur = (s.exists && s.data().teams) || [];
     const all = teams.concat(cur.filter(x => !stOpen.some(o => o.id === x.id) && !teams.some(y => y.id === x.id)));
     if (all.length > 12) throw fail("12명까지예요");
-    tx.update(T(), Object.assign({}, fields, { teams: all }));
+    tx.update(tref, Object.assign({}, fields, { teams: all }));
+    fixes.forEach(([r, who]) => tx.update(r, { who }));
   }), "저장했어요");
-  if (ok && renames.size) await renameWho(renames);
+  $("#s_save").disabled = false;
+  if (!ok) return;
+  if (!$("#setModal").hidden) closeModal("setModal");
+  if (PID !== pid) return;                                   // 저장 중에 다른 여행으로 갔다
+  if (IDX && (IDX.name !== name || (IDX.start || "") !== start)){ IDX.name = name; IDX.start = start; C("tripIdx").doc(PID).update({ name, start: start || "", updatedAt: TSV() }).catch(() => {}); }
+  if (TRIP){ TRIP.tabsOff = stOff.slice(); renderAll(); }
 };
 /** 이름을 고치면 준비물·일정의 담당(who, 이름으로 저장됨)도 같이 — 안 그러면 '담당 미정'이 되고 체크도 안 보였다 (2026-11-05) */
-async function renameWho(map){
+function whoFixes(map){
   const fix = w => Array.from(new Set((w || []).map(x => map.has(x) ? map.get(x) : x)));
   const ch = [];
+  if (!map.size) return ch;
   [["items", ITEMS], ["plan", PLAN]].forEach(([c, a]) => a.forEach(x => {
     const w = fix(x.who); if (JSON.stringify(w) !== JSON.stringify(x.who || [])) ch.push([T().collection(c).doc(x.id), w]);
   }));
-  if (!ch.length) return;
-  await run((async () => {
-    for (let i = 0; i < ch.length; i += 400){ const b = db.batch(); ch.slice(i, i + 400).forEach(([r, who]) => b.update(r, { who })); await b.commit(); }
-  })());
+  return ch;
 }
 $("#s_delete").onclick = async () => {
   if (!TRIP) return;

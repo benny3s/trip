@@ -1,5 +1,5 @@
 /* 👤 사람 목록(teams) — 동시에 들어오기 · 설정 저장 · 이름 고치기 */
-const { load, setup, sync, tick, test, main, eq, ok, TID } = require("./env");
+const { load, setup, sync, tick, test, main, eq, ok, rules, TID } = require("./env");
 
 const tm = (id, name) => ({ id, name, people: [name], bank: "" });
 const trip = teams => ({ name: "여행", start: "", end: "", place: "", addr: "", phone: "", teams, cats: ["기본"] });
@@ -34,13 +34,14 @@ test("저장이 실패하면 ME 는 그대로", async () => {
   eq(E.ls["tr_me:" + "p".repeat(20)], undefined, "기기에 저장 안 함");
 });
 
-test("12명이면 더 못 넣음 (저장소의 최신 목록 기준)", async () => {
+test("12명이면 더 못 넣음 (저장소의 최신 목록 기준 — 규칙의 12명 한도가 막음)", async () => {
   const many = Array.from({ length: 11 }, (_, i) => tm("t" + i, "n" + i));
-  const E1 = load(); setup(E1, trip(many), []);
+  const E1 = load(); setup(E1, trip(many), []); rules(E1);
   const E2 = load(E1.F); setup(E2, trip(many), []);
   await Promise.all([addMe(E1, "B"), addMe(E2, "C")]);
   await tick(20);
   eq(teamsInStore(E1).length, 12);
+  eq([E1.run("ME"), E2.run("ME")].filter(x => x === "").length, 1, "못 들어간 쪽은 ME 가 그대로");
 });
 
 test("설정 창을 열어 둔 사이 들어온 사람은 저장해도 안 지워짐", async () => {

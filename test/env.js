@@ -42,7 +42,8 @@ const SV = { __sv: "serverTimestamp" };
 function makeDb(){
   const store = new Map(), ver = new Map();
   let seq = 0;
-  const hooks = { failCommit: null, failGet: null, failWrite: null, writes: [] };
+  /* failWrite(op, path, data) → true | 오류 code 글자 · rule(path, 결과 문서) → false 면 규칙 거절 · offline → 쓰기는 기기에 쌓이고 답은 오지 않음, 트랜잭션은 unavailable */
+  const hooks = { failCommit: null, failGet: null, failWrite: null, rule: null, offline: false, writes: [] };
   const bump = p => ver.set(p, (ver.get(p) || 0) + 1);
   function applyUpdate(cur, data){
     const o = JSON.parse(JSON.stringify(cur));
@@ -54,14 +55,22 @@ function makeDb(){
     }
     return o;
   }
+  const fresh = (op, p, data) => op === "set" ? JSON.parse(JSON.stringify(data)) : applyUpdate(store.get(p), data);
+  /* 실제 서버처럼 부작용 없이 먼저 검사 — 묶음·트랜잭션은 하나라도 거절되면 아무것도 안 쓴다 */
+  const check = (op, p, data) => {
+    const f = hooks.failWrite && hooks.failWrite(op, p, data);
+    if (f) throw Object.assign(new Error("거절"), { code: typeof f === "string" ? f : "permission-denied" });
+    if (op !== "delete" && !store.has(p) && op === "update"){ const e = new Error("no doc " + p); e.code = "not-found"; throw e; }
+    if (op !== "delete" && hooks.rule && !hooks.rule(p, fresh(op, p, data))) throw Object.assign(new Error("규칙 거절"), { code: "permission-denied" });
+  };
   const write = (op, p, data) => {
-    if (hooks.failWrite && hooks.failWrite(op, p, data)) throw Object.assign(new Error("거절"), { code: "permission-denied" });
+    check(op, p, data);
     hooks.writes.push({ op, path: p, data });
     if (op === "delete"){ store.delete(p); bump(p); return; }
-    if (op === "set"){ store.set(p, JSON.parse(JSON.stringify(data))); bump(p); return; }
-    if (!store.has(p)){ const e = new Error("no doc " + p); e.code = "not-found"; throw e; }
-    store.set(p, applyUpdate(store.get(p), data)); bump(p);
+    store.set(p, fresh(op, p, data)); bump(p);
   };
+  const never = () => new Promise(() => {});                       // 신호가 없으면 서버 답을 끝없이 기다린다
+  const doWrite = async (op, p, data) => { await null; write(op, p, data); if (hooks.offline) await never(); };
   function snap(p){ const d = store.get(p); return { id: p.split("/").pop(), exists: d !== undefined, data: () => d && JSON.parse(JSON.stringify(d)), ref: ref(p) }; }
   function ref(p){
     return {
@@ -69,9 +78,9 @@ function makeDb(){
       collection: n => col(p + "/" + n),
       onSnapshot: () => () => {},
       get: async () => { await null; if (hooks.failGet) throw hooks.failGet; return snap(p); },
-      set: async d => { await null; write("set", p, d); },
-      update: async d => { await null; write("update", p, d); },
-      delete: async () => { await null; write("delete", p); }
+      set: d => doWrite("set", p, d),
+      update: d => doWrite("update", p, d),
+      delete: () => doWrite("delete", p)
     };
   }
   function col(p){
@@ -93,10 +102,11 @@ function makeDb(){
         set: (r, d) => ops.push(["set", r.path, d]),
         update: (r, d) => ops.push(["update", r.path, d]),
         delete: r => ops.push(["delete", r.path]),
-        commit: async () => { await null; if (hooks.failCommit && hooks.failCommit(ops)) throw Object.assign(new Error("net"), { code: "unavailable" }); ops.forEach(o => write(o[0], o[1], o[2])); }
+        commit: async () => { await null; if (hooks.failCommit && hooks.failCommit(ops)) throw Object.assign(new Error("net"), { code: "unavailable" }); ops.forEach(o => check(o[0], o[1], o[2])); ops.forEach(o => write(o[0], o[1], o[2])); if (hooks.offline) await never(); }
       };
     },
     async runTransaction(fn){
+      if (hooks.offline) throw Object.assign(new Error("Failed to get document because the client is offline."), { code: "unavailable" });
       for (let n = 0; n < 5; n++){
         const reads = new Map(), ops = [];
         const tx = {
@@ -108,6 +118,7 @@ function makeDb(){
         const res = await fn(tx);
         await null; await null;
         if ([...reads].some(([p, v]) => (ver.get(p) || 0) !== v)) continue;     // 누가 먼저 썼다 — 다시
+        ops.forEach(o => check(o[0], o[1], o[2]));
         ops.forEach(o => write(o[0], o[1], o[2]));
         return res;
       }
@@ -156,6 +167,19 @@ function load(shared){
   return { ctx, run, $, els, F, asks, statuses, ls };
 }
 
+/* 규칙(benny-apps/firestore.rules 의 trips 쓰기 모양)을 파일에서 읽어 가짜 저장소에 건다 */
+const RULES = fs.readFileSync(path.join(__dirname, "..", "..", "benny-apps", "firestore.rules"), "utf8");
+const vt = RULES.slice(RULES.indexOf("function validTrip"), RULES.indexOf("match /trips/{tid}"));
+const KEYS = JSON.parse(vt.match(/hasOnly\((\[[^\]]*\])\)/)[1].replace(/'/g, '"'));
+const MAXTEAMS = +vt.match(/d\.teams\.size\(\) <= (\d+)/)[1];
+/** 가짜 저장소에 규칙의 trips 쓰기 모양을 건다 — 사람은 12명까지 */
+function rules(E){
+  E.F.hooks.rule = (p, d) => {
+    if (p !== "trips/" + TID) return true;
+    return Object.keys(d).every(k => KEYS.includes(k)) && Array.isArray(d.teams) && d.teams.length <= MAXTEAMS
+      && typeof d.name === "string" && d.name.length > 0 && d.name.length <= 40;
+  };
+}
 const TID = "k".repeat(20);
 /** 여행 하나를 저장소와 화면 상태에 같이 넣는다 */
 function setup(E, trip, money, extra){
@@ -192,4 +216,4 @@ async function main(){
 function eq(a, b, msg){ const A = JSON.stringify(a), B = JSON.stringify(b); if (A !== B) throw new Error((msg || "다름") + ": " + A + " ≠ " + B); }
 function ok(v, msg){ if (!v) throw new Error(msg || "거짓"); }
 
-module.exports = { load, setup, sync, tick, test, main, eq, ok, findButtons, allText, TID };
+module.exports = { rules, load, setup, sync, tick, test, main, eq, ok, findButtons, allText, TID };
