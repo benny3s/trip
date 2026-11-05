@@ -1352,11 +1352,16 @@ function settleRows(){
     return Object.keys(p).filter(k => p[k].spent > 0 || p[k].got > 0).sort((x, y) => ord(x) - ord(y))
       .map(k => ({ from: POT, to: k, amt: Math.max(0, p[k].left), paid: p[k].got, total: Math.max(p[k].spent, p[k].got) }));
   }
-  const paidOf = (f, t) => MONEY.filter(m => m.kind === "pay" && !m.done && m.payer === f && m.split && +m.split[t]).reduce((a, m) => a + (+m.amt || 0), 0);
-  const rows = transfers(balances(true)).map(x => { const paid = paidOf(x.from, x.to); return { from: x.from, to: x.to, amt: Math.max(0, x.amt - paid), paid, total: x.amt }; });
-  /* 계획 밖에서 생긴 차액(계획과 다른 송금 등)은 뒤에 붙인다 */
-  transfers(balances()).forEach(x => { if (!rows.some(r => r.from === x.from && r.to === x.to)) rows.push({ from: x.from, to: x.to, amt: x.amt, paid: 0, total: x.amt }); });
-  return rows;
+  /* 남은 돈은 송금까지 반영한 잔액(balances())으로만 짠다 — 계획에서 그 두 사람 사이 송금만 빼면
+     다른 사람에게 이미 보낸 돈이 안 빠져 금액이 틀렸다 (2026-11-05). 회색 '끝난 줄'은 송금 기록에서 따로 */
+  const pays = MONEY.filter(m => m.kind === "pay" && !m.done && m.payer !== POT && !(m.split && m.split[POT]));
+  const paidOf = (f, t) => pays.filter(m => m.payer === f && m.split && +m.split[t]).reduce((a, m) => a + (+m.amt || 0), 0);
+  const rows = transfers(balances()).map(x => { const paid = paidOf(x.from, x.to); return { from: x.from, to: x.to, amt: x.amt, paid, total: x.amt + paid }; });
+  pays.forEach(m => { const to = Object.keys(m.split || {})[0];
+    if (to && !rows.some(r => r.from === m.payer && r.to === to)) rows.push({ from: m.payer, to, amt: 0, paid: paidOf(m.payer, to), total: paidOf(m.payer, to) }); });
+  /* 줄 순서는 처음 계획(송금 전) 순서 — 보내도 그 자리에 남게. 계획에 없는 줄은 뒤에 */
+  const plan = transfers(balances(true)).map(x => x.from + ">" + x.to), pi = r => { const i = plan.indexOf(r.from + ">" + r.to); return i < 0 ? 999 : i; };
+  return rows.map((r, i) => [r, i]).sort((a, z) => pi(a[0]) - pi(z[0]) || a[1] - z[1]).map(a => a[0]);
 }
 /** 끝난 줄 되돌리기 = 그 두 사람 사이 송금 기록을 지운다 */
 async function undoRow(r){
@@ -1435,6 +1440,7 @@ function renderMoney(){
     r.appendChild(t);
     if (done){ r.appendChild(btn("btn ghost sm", "되돌리기", () => undoRow(x))); }
     else {
+      if (x.paid > 0) r.appendChild(btn("btn ghost sm", "되돌리기", () => undoRow(x)));     // 일부만 보낸 줄도 기록을 지울 수 있게
       r.appendChild(btn("btn primary sm", xferWord(x), () => markSent(x)));
     }
     xb.appendChild(r);
@@ -1491,9 +1497,16 @@ const xferWord = x => x.from === POT ? "빼갔어요" : x.to === POT ? "넣었�
 async function markSent(x){
   const title = x.from === POT ? teamName(x.to) + " 님이 공금에서 빼 간 걸로 기록할까요?"
               : x.to === POT ? teamName(x.from) + " 님이 공금에 넣은 걸로 기록할까요?" : "보낸 걸로 기록할까요?";
-  if (!await ask({ title, text: teamName(x.from) + " → " + teamName(x.to) + "\n" + won(x.amt) + "\n\n기록하면 보낼 돈에서 빠져요. 지출 목록에서 누르면 취소돼요.", ok: xferWord(x) })) return;
+  if (!await ask({ title, text: teamName(x.from) + " → " + teamName(x.to) + "\n" + won(x.amt) + "\n\n기록하면 보낼 돈에서 빠져요. 잘못 눌렀으면 이 줄의 ‘되돌리기’로 취소해요.", ok: xferWord(x) })) return;
   const kind = x.from === POT ? "공금에서 빼감" : x.to === POT ? "공금 넣기" : "송금";
-  run(T().collection("money").add({ kind: "pay", title: kind, amt: x.amt, payer: x.from, split: { [x.to]: 1 }, memo: "", at: TSV() }), "기록했어요 " + (x.from === POT || x.to === POT ? "🏦" : "💸"));
+  /* 문서 id 를 그 두 사람 사이 n번째 기록으로 정해 두고 트랜잭션으로 — 보낸 사람·받는 사람이 같이 눌러도 한 번만 (2026-11-05) */
+  const base = "pay_" + x.from + "_" + x.to + "_";
+  const n = MONEY.reduce((a, m) => m.id && m.id.startsWith(base) ? Math.max(a, +m.id.slice(base.length) || 0) : a, 0) + 1;
+  const ref = T().collection("money").doc(base + n);
+  run(db.runTransaction(async tx => {
+    if ((await tx.get(ref)).exists) throw fail("이미 기록됐어요");
+    tx.set(ref, { kind: "pay", title: kind, amt: x.amt, payer: x.from, split: { [x.to]: 1 }, memo: "", at: TSV() });
+  }), "기록했어요 " + (x.from === POT || x.to === POT ? "🏦" : "💸"));
 }
 async function delPay(m){
   const to = Object.keys(m.split || {})[0];
