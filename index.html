@@ -575,7 +575,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="../when/core.js?v=2026-10-30a"></script>
+<script src="../when/core.js?v=2026-11-05a"></script>
 <script>/* 여행 가자 — benny3s.github.io/trip/  (2026-10-09)
    시작: 캠핑 구글 시트(준비물·부부별 지출·공지)가 불편했던 세 가지
      ① 짐 쌀 때 체크 + 차에 실을 때 체크를 엑셀 한 칸으로 하다 보니 자꾸 빠뜨림 → 버튼 하나 세 단계: 0 아직 → 1 준비 → 2 챙김
@@ -590,7 +590,7 @@
        /notes/{nid}               공지 카드 (예약 정보처럼 안 바뀌는 것)
        /plan/{id}                 일정 한 줄 {date, time(시각 또는 출발 전·아침·점심·저녁·밤), text, who[], memo}
    목록 없음 — 링크를 아는 사람만. 관리자 기기엔 전체 목록(adminIdx). 이 기기: tr_mine(연 여행) · tr_me:<pid>(우리 팀) */
-const BUILD = "2026-11-03a";
+const BUILD = "2026-11-05a";
 
 /* ── 작은 도구 ── */
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch(e){ return ""; } }
